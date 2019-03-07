@@ -1,0 +1,331 @@
+<!doctype html>
+<html>
+
+<head>
+  	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" >
+	<script src="js/jquery.min.js"></script>
+	<script src="js/jquery-ui.min.js"></script>
+  	<script src="js/snap.svg-min.js"></script> 
+  	<script src="js/jspsych.js"></script>
+	<script src="jspsych-color-sort.js"></script>
+	<script src="jspsych-color-sort-training.js"></script>
+	<script src="plugins/jspsych-button-response.js"></script>
+    <link rel="stylesheet" href="css/jspsych.css"></link>
+    <link rel="stylesheet" href="css/colorRule.css"></link>
+</head>
+
+<body>
+  <div id="jspsych-target"></div>
+</body>
+
+<script>
+//$('body,html').addClass('stop-scrolling');
+$('body,html').addClass('stop-scrolling');
+//$('body').bind('touchmove', function(e){e.preventDefault()})
+
+
+//Enter subject id
+var subject_id = prompt("Enter subject id", "test");
+while (subject_id==null) {
+	var subject_id = prompt("Try again! Enter subject id", "test");
+};
+var condition = prompt("Condition (high or low)","high");
+while (condition==null) {
+	var condition = prompt("Try again! Condition (high or low)","high");
+};
+var categoryALoc = prompt("Category A Location (left or right)","left");
+while (categoryALoc==null) {
+	var categoryALoc = prompt("Try again! Category A Location (left or right)","left");
+};
+var input = prompt("Enter input type (touch or click)","touch");
+while (input==null) {
+	var input = prompt("Try again! Enter input type (touch or click)","touch");
+};
+
+var inputType="";
+if (input=="touch") {
+	inputType="touch";
+} else {
+	inputType="click";
+}
+subject_id.replace(/[^A-Za-z0-9_]/g, "");
+condition.replace(/[^A-Za-z0-9_]/g, "");
+categoryALoc.replace(/[^A-Za-z0-9_]/g, "");
+
+if (categoryALoc == "left") {
+	categoryLoc = ["left","right"]
+} else {
+	categoryLoc = ["right","left"]
+}
+
+jsPsych.data.addProperties({
+	subject: subject_id,
+	condition: condition,
+	categoryALoc: categoryALoc//,
+	//list: listNum
+});
+
+//set current date of experiment launch
+var date = new Date;
+
+var seconds = date.getSeconds();
+var minutes = date.getMinutes();
+var hour = date.getHours();
+var year = date.getFullYear();
+var month = date.getMonth()+1; // beware: January = 0; February = 1, etc.
+var day = date.getDate();
+
+var curDate=String(month)+String(day)+String(year)+String(hour)+String(minutes)+String(seconds);
+
+var timeline=[];
+
+var stimExt="stims/";
+
+var typeLearnA=["A_000","A_000","A_001","A_010"];
+var typeLearnB=["B_111","B_111","B_101","B_110"];
+var typeLearn=[typeLearnA,typeLearnB];
+var typeTestA=["A_000","A_011"];
+var typeTestB=["B_111","B_100"];
+var typeTest=[typeTestA,typeTestB];
+
+//create training trials
+var trainArray = [
+	{stim: stimExt+"bone1.png",target: "dog",distracter: "cat",targetLocation: "left"},
+{stim: stimExt+"fish1.png",target: "cat",distracter: "dog",targetLocation: "right"},
+{stim: stimExt+"fish2.png",target: "cat",distracter: "dog",targetLocation: "right"},
+{stim: stimExt+"bone2.png",target: "dog",distracter: "cat",targetLocation: "left"}];
+
+//create learning trials
+var learnArray = [];
+
+for (var i = 0; i < typeLearnA.length; i++) {
+	learnArray.push([stimExt+condition+"_"+ typeLearn[0][i] +".png","A",categoryLoc[0],condition+"_"+ typeLearn[0][i]]);
+	learnArray.push([stimExt+condition+"_"+ typeLearn[1][i] +".png","B",categoryLoc[1],condition+"_"+ typeLearn[1][i]]);
+}
+
+var numLearningTrials = 24;
+var numTestTrials = 4;
+var numLearningBlocks = 3;
+var numTestBlocks = 2;
+
+//randomize learn array
+//var learnArrayRandom=jsPsych.randomization.shuffle(learnArray);
+var learnArrayRandom =[];
+for (var i = 0; i < numLearningBlocks; i++) {
+	var temp = jsPsych.randomization.shuffle(learnArray);
+	for (var j = 0; j < temp.length; j++) {
+		learnArrayRandom.push(temp[j]);
+	}
+}
+
+
+console.log(learnArrayRandom);
+
+//create test trials
+var testArray = [];
+
+//repeat incorrect trials
+var repeatLearnIncorrect = true;
+var repeatTestIncorrect = true;
+
+for (var i = 0; i < typeTestA.length; i++) {
+	testArray.push([stimExt+condition+"_"+ typeTest[0][i] +".png","A",categoryLoc[0],condition+"_"+ typeTest[0][i]]);
+	testArray.push([stimExt+condition+"_"+ typeTest[1][i] +".png","B",categoryLoc[1],condition+"_"+ typeTest[1][i]]);
+}
+
+//randomize test array
+//var testArrayRandom=jsPsych.randomization.shuffle(testArray);
+var testArrayRandom =[];
+for (var i = 0; i < numTestBlocks; i++) {
+	var temp = jsPsych.randomization.shuffle(testArray);
+	for (var j = 0; j < temp.length; j++) {
+		testArrayRandom.push(temp[j]);
+	}
+}
+
+//add training trials
+for (var i = 0; i < trainArray.length; i++) {
+	var trials_train = {
+		type: 'color-sort-training',
+		stimulus: trainArray[i]["stim"],
+		category: trainArray[i]["target"],
+		categoryLoc: trainArray[i]["targetLocation"],
+		targetLoc: trainArray[i]["targetLocation"],
+		audioBeep: "stims/bleep.m4a",
+		audioTaDa: "stims/tada_1000msSilence.m4a",
+		audioBoing: "stims/boing_1000msSilence.m4a",
+		repeatIncorrect: true,
+		feedback: true,
+		isRepeatedTrial: function() {
+			var isRepeatedTrial=0;
+			if (repeatLearnIncorrect) {
+				var data = jsPsych.data.getLastTrialData();
+				if (data.isRight==0) {isRepeatedTrial=1};
+			};
+			return isRepeatedTrial;
+			},
+		data: {trial_kind: "train", trial_id: i+1}
+		
+	};
+	
+	var loop_node = {
+	    timeline: [trials_train],
+	    loop_function: function(data){
+			var data = jsPsych.data.getLastTrialData();
+	        if (data.isRight == 0){
+	            return true;
+	        } else {
+	            return false;
+	        }
+	    }
+	};
+	if (repeatLearnIncorrect) {
+		timeline.push(loop_node);
+	} else {
+		timeline.push(trials_train);
+	};
+};
+
+//hands prompt
+var handStim= {
+	type: 'button-response',
+	stimulus: 'stims/twohands.png',
+	choices: ['READY']
+};
+
+timeline.push(handStim);
+
+
+//add learning trials
+for (var i = 0; i < learnArrayRandom.length; i++) {
+	console.log(learnArrayRandom[i][3]);
+	var trials_learn = {
+		type: 'color-sort',
+		stimulus: learnArrayRandom[i][0],
+		category: learnArrayRandom[i][1],
+		categoryLoc: learnArrayRandom[i][2],
+		stimName: learnArrayRandom[i][3],
+		audioBeep: "stims/bleep.m4a",
+		audioTaDa: "stims/tada_1000msSilence.m4a",
+		audioBoing: "stims/boing_1000msSilence.m4a",
+		repeatIncorrect: true,
+		feedback: true,
+		scoreLength: learnArrayRandom.length,
+		score: i,
+		scoreBox: 1,
+		scoreBoxOrientation: "horizontal",
+		isRepeatedTrial: function() {
+			var isRepeatedTrial=0;
+			if (repeatLearnIncorrect) {
+				var data = jsPsych.data.getLastTrialData();
+				if (data.isRight==0) {isRepeatedTrial=1};
+			};
+			return isRepeatedTrial;
+			},
+		data: {trial_kind: "learn", trial_id: i+1}
+	};
+	
+	var loop_node = {
+	    timeline: [trials_learn],
+	    loop_function: function(data){
+			var data = jsPsych.data.getLastTrialData();
+	        if (data.isRight == 0){
+	            return true;
+	        } else {
+	            return false;
+	        }
+	    }
+	};
+	if (repeatLearnIncorrect) {
+		timeline.push(loop_node);
+	} else {
+		timeline.push(trials_learn);
+	};
+ };
+ 
+ //hands prompt
+ var handStim= {
+ 	type: 'button-response',
+ 	stimulus: 'stims/twohands.png',
+ 	choices: ['READY']
+ };
+
+ timeline.push(handStim);
+ 
+ //add test trials
+ for (var i = 0; i < testArrayRandom.length; i++) {
+ 	var trials_test = {
+ 		type: 'color-sort',
+ 		stimulus: testArrayRandom[i][0],
+ 		category: testArrayRandom[i][1],
+ 		categoryLoc: testArrayRandom[i][2],
+		stimName: testArrayRandom[i][3],
+		audioBeep: "stims/bleep.m4a",
+		//audioTaDa: "stims/tada_1000msSilence.m4a",
+		//audioBoing: "stims/boing_1000msSilence.m4a",
+ 		feedback: false,
+ 		data: {trial_kind: "test", trial_id: i+1}
+	};
+	// var loop_node = {
+	//     timeline: [trials_test],
+	//     loop_function: function(data){
+	// 		var data = jsPsych.data.getLastTrialData();
+	//         if(data.isRight == 0){
+	//             return true;
+	//         } else {
+	//             return false;
+	//         }
+	//     }
+	// };
+	// if (repeatTestIncorrect) {
+	// 	timeline.push(loop_node);
+	// } else {
+	// 	timeline.push(trials_test);
+	// };
+	timeline.push(trials_test);
+  };
+ 
+
+
+
+  //function for Javascript-PHP communication
+  function saveData(filename, filedata){
+  $.ajax({
+         type:'post',
+         cache: false,
+         url: 'save_data.php', // this is the path to the above PHP script
+         data: {filename: filename, filedata: filedata}
+         });
+  };
+
+  //preload all images
+  var imageSet=["stims/twohands.png","stims/bone2.png","stims/bone1.png","stims/dogHead.png","stims/dogFeet.png","stims/dogTail.png","stims/catHead.png","stims/catFeet.png","stims/catTail.png","stims/fish1.png","stims/fish2.png","stims/high_A_000.png","stims/high_A_001.png","stims/high_A_010.png","stims/high_A_011.png", "stims/high_B_100.png","stims/high_B_101.png","stims/high_B_110.png","stims/high_B_111.png","stims/low_A_000.png","stims/low_A_001.png","stims/low_A_010.png","stims/low_A_011.png", "stims/low_B_100.png","stims/low_B_101.png","stims/low_B_110.png","stims/low_B_111.png"];
+  
+  var allAudio = ["stims/tada_1000msSilence.m4a","stims/bleep.m4a","stims/boing_1000msSilence.m4a"];
+  
+function updateLoadedCount(nLoaded){
+      var percentcomplete = nLoaded / allAudio.length * 100;
+
+      // could put something fancier here, like a progress bar
+      // or updating text in the DOM.
+      console.log('Loaded '+percentcomplete+'% of audio files');
+  }
+
+  jsPsych.pluginAPI.preloadImages(imageSet, function(){ jsPsych.pluginAPI.preloadAudioFiles(allAudio, function() {startExperiment(); },function(nLoaded) { updateLoadedCount(nLoaded); });});
+  
+  function startExperiment(){
+    jsPsych.init({
+      display_element: $('#jspsych-target'),
+      timeline: timeline,
+  	  fullscreen: true,
+  	  default_iti: 0,
+      on_finish: function() {
+        //jsPsych.data.displayData();
+		jsPsych.data.localSave("colorRuleKids_"+subject_id+"_"+curDate+".csv","csv")
+		//saveData("colorRuleKids_"+subject_id+".csv", jsPsych.data.dataAsCSV());
+      }
+    });
+  };
+</script>
+
+</html>
