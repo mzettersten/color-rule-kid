@@ -1,5 +1,31 @@
 # color-rule-kid
 
-Browser-based experiments for "Color Rule Kids", a study of children and adult's rule learning and vocabulary knowledge.
+Materials, data, and analysis scripts for the "Color Rule Kid" experiment
 
-The experiments are built using jsPsych (https://www.jspsych.org/).
+Zettersten, M., Bredemann, C., Kaul, M., Vlach, H., Kirkorian, H., & Lupyan, G. (under review). Nameability supports rule-based category learning in children and adults. Preprint:
+
+**Abstract**
+
+Learning abstract, rule-based categories is crucial to children’s development, from learning how to maneuver through the world (e.g., knowing to stop at a red light) to abstract reasoning (e.g., learning that a three-sided shape is a triangle). How do children learn rule-based categories? Past work with adults suggests that verbal labels may support novel category induction by providing compact hypotheses about category-relevant features. We asked whether children also make use of accessible labels to guide category learning. We tested children’s (N = 97; 4 - 6 years of age) and adults’ (N = 90) ability to learn a novel category in which the colors that perfectly predicted category membership were either easy to name (e.g., “red” and “brown”) or more difficult to name (e.g., “mauve” and “chartreuse”). Both children and adults showed better learning when the categories were composed of more nameable color features compared to less nameable color features, though the effect of nameability on category learning was stronger for adults than children. Children’s success in learning categories with difficult-to-name features was related to knowledge of difficult-to-name colors. Together, these results provide evidence that rule-based category learning may be supported by the emerging ability to form verbal hypotheses about category membership (e.g., “the red ones belong to category A”).![image](https://user-images.githubusercontent.com/28266548/167712554-de6214e0-6929-4c15-a9f2-9df6d5e686b3.png)
+
+## Folders
+
+The repository contains the following documents:
+
+- **data**: experimental data and codebook
+- **analysis_scripts**: R scripts analyzing the data as well as outputs from the analyses (model outputs and figures)
+- **experiment_scripts:** Experimental scripts used to present the experiment (python-/ psychopy-based)
+
+## Link to OSF project:
+
+
+
+## Analysis Walkthrough
+
+Here is a direct link to the html rendering of the R Markdown file in the data folder. This provides a walkthrough of the major analyses in the paper.
+
+
+
+## Questions
+
+Feel free to contact me at **martincz@princeton.edu** if you have any comments or questions about the data or the analyses.
