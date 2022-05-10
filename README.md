@@ -16,7 +16,7 @@ The repository contains the following documents:
 - **analysis_scripts**: R scripts analyzing the data as well as outputs from the analyses (model outputs and figures)
 - **experiment_scripts:** Experimental scripts used to present the experiment (python-/ psychopy-based)
 
-## Link to OSF project:
+## Link to OSF project
 
 
 
