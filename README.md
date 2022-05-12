@@ -19,12 +19,10 @@ The repository contains the following documents:
 ## Link to OSF project
 
 
-
 ## Analysis Walkthrough
 
 Here is a direct link to the html rendering of the R Markdown file in the data folder. This provides a walkthrough of the major analyses in the paper.
-
-
+https://rpubs.com/zcm/color-rule-kid
 
 ## Questions
 
