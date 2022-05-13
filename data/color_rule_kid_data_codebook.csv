@@ -1,0 +1,95 @@
+column_name,description,values
+subject,unique participant ID,
+condition,participants' nameability condition (high nameability vs. low nameability),"high, low"
+condition_c,"participants' nameability condition, centered","0.5=high,-0.5=low"
+trial_kind,"trial phase of the experiment (warm-up, training, test)","train=Warm-up Phase, learn=Training Phase, test=Test Phase"
+trial_type,trial type based on JsPsych plugin name,"color-sort-training, color-sort"
+trial_id,trial index by trial phase,
+round,experiment round,"1,2"
+round_c,"experiment round, centered","0.5, -0.5"
+block,experiment block (within each round),"1,2,3"
+block_c,"experiment block, centered","1,0,-1"
+time_elapsed,running experiment clock for the participant (in ms),
+stimulus,trial stimulus to be categorized (image path),
+stimulus_type,"the type of stimulus: prototype, training items that differed on one of the 75% predictive colors from the prototype (1-color-diff), and test items that differed on both 75% predictive colors from the prototype","prototype, 1-color-diff, 2-color-diff"
+stimulus_type_c,centered stimulus type for training phase,"0.5=prototype, -0.5=1-color-diff"
+stimulus_test_type_c,centered stimulus type for test phase,"0.5=prototype, -0.5=2-color-diff"
+choice,categorization location chosen by the participant,"left, right"
+target_category,correct category label of the target stimulus (A or B in the case of the training or test phase - for counterbalancing),"A, B; dog, cat"
+category_a_loc,location of the category label/ alien named A (for counterbalancing purposes),"left, right"
+target_location,correct target location,"left, right"
+is_right,whether the participant chose the correct category location for the target stimulus,"0=incorrect, 1=correct"
+rt,participant reaction time (in ms),
+gender,participants' gender (self-reported; reported by parents in the case of children),"male, female"
+age_y,age in years (for adult participants),
+age_m,age in months (for child participants),
+age_c,mean-centered age (in months; for child participants),
+age_group,age group (child vs. adult participants,adult; kid
+age_group_c,centered age group,"0.5=adult, -0.5=kid"
+race,participants' race (children only; as reported by parents),"American Indian or Alaska Native,Asian,Black or African American,Native Hawaiian or Other Pacific Islander,White,More than one race,Prefer not to disclose"
+ethnicity,participants' ethnicity (children only; as reported by parents),"Hispanic or Latino, Not Hispanic or Latino, Prefer not to disclose"
+household_income,"for children, parents' self-reported household income","1=Less than $24,9999, 2=$25,000 to $49,999, 3=$50,0000 to 99,999, 4 = $100,000 or more, 5 = Prefer not to disclose"
+parental_education,"for children, parents' self-reported education background","1=Some high school, 2=High school graduate, 3=Some college, 4=Trade/Technical/Vocational training, 5=College graduate, 6=Postgraduate, 7=Prefer not to disclose"
+language_history,coding of children's language exposure - multiple entries possible,"1=English, 2= Spanish, 3=Mandarin, 4=Other"
+l1,adult participants' self-reported first language,
+exclude,whether or not to exclude the particular participant,"1=exclude, 0=keep"
+exclusion_reason,explanation of the exclusion reason,
+metacognitive_1_response,"participants' response to the verbal question: ""How did you figure out which snacks the aliens like to eat?""",
+metacognitive_2_response,"participants' response to the verbal question: ""What color did you use to decide which alien to feed?""",
+metacognitive_color,whether the participant mentions color in their metacognitive responses; coded by the first author,"1=mentions color, 0=does not mention color"
+metacognitive_explicit_strategy,whether the participant reports an explicit strategy in their metacognitive responses; coded by the first author,"1 = strategy reported, 0 = not reported"
+metacognitive_single_feature,"whether the participant reports a single-feature strategy (see supplementary materials in Zettersten & Lupyan, 2020 for details); coded by the first author","1 = strategy reported, 0 = not reported"
+metacognitive_multiple_feature,"whether the participant reports a multiple-feature strategy (see supplementary materials in Zettersten & Lupyan, 2020 for details); coded by the first author","1 = strategy reported, 0 = not reported"
+metacognitive_holistic,"whether the participant reports a holistic strategy (see supplementary materials in Zettersten & Lupyan, 2020 for details); coded by the first author","1 = strategy reported, 0 = not reported"
+metacognitive_prototype,"indexes if the participants' metacognitive response indicates a strategy based on (or an awareness of) the prototype (i.e., mentioning a specific stimulus made up of multiple colors)","1=mentions prototype, otherwise empty or NA"
+evt_color1_high,color naming test item: brown - coding of whether response is correct or not,"1=correct, 0=incorrect"
+word_1_high,"participants' naming response to the color naming test item ""brown""",
+evt_color2_high,color naming test item: blue - coding of whether response is correct or not,"1=correct, 0=incorrect"
+word_2_high,"participants' naming response to the color naming test item ""blue""",
+evt_color3_high,color naming test item: orange - coding of whether response is correct or not,"1=correct, 0=incorrect"
+word_3_high,"participants' naming response to the color naming test item ""orange""",
+evt_color4_high,color naming test item: yellow - coding of whether response is correct or not,"1=correct, 0=incorrect"
+word_4_high,"participants' naming response to the color naming test item ""yellow""",
+evt_color5_high,color naming test item: red - coding of whether response is correct or not,"1=correct, 0=incorrect"
+word_5_high,"participants' naming response to the color naming test item ""red""",
+evt_color6_high,color naming test item: purple - coding of whether response is correct or not,"1=correct, 0=incorrect"
+word_6_high,"participants' naming response to the color naming test item ""purple""",
+evt_color1_low,color naming test item: sienna - coding of whether response is correct or not,"1=correct, 0=incorrect"
+word_1_low,"participants' naming response to the color naming test item ""sienna""",
+evt_color2_low,color naming test item: mauve - coding of whether response is correct or not,"1=correct, 0=incorrect"
+word_2_low,"participants' naming response to the color naming test item ""mauve""",
+evt_color3_low,color naming test item: turquoise - coding of whether response is correct or not,"1=correct, 0=incorrect"
+word_3_low,"participants' naming response to the color naming test item ""turquoise""",
+evt_color4_low,color naming test item: chartreuse - coding of whether response is correct or not,"1=correct, 0=incorrect"
+word_4_low,"participants' naming response to the color naming test item ""chartreuse""",
+evt_color5_low,color naming test item: teal - coding of whether response is correct or not,"1=correct, 0=incorrect"
+word_5_low,"participants' naming response to the color naming test item ""teal""",
+evt_color6_low,color naming test item: honeydew - coding of whether response is correct or not,"1=correct, 0=incorrect"
+word_6_low,"participants' naming response to the color naming test item ""honeydew""",
+ppvt_color1_high,color word comprehension test item (high nameability): purple,"1=correct, 0=incorrect"
+ppvt_color2_high,color word comprehension test item (high nameability): orange,"1=correct, 0=incorrect"
+ppvt_color3_high,color word comprehension test item (high nameability): yellow,"1=correct, 0=incorrect"
+ppvt_color4_high,color word comprehension test item (high nameability): brown,"1=correct, 0=incorrect"
+ppvt_color5_high,color word comprehension test item (high nameability): blue,"1=correct, 0=incorrect"
+ppvt_color6_high,color word comprehension test item (high nameability): red,"1=correct, 0=incorrect"
+ppvt_color1_low,color word comprehension test item (low nameability): mauve,"1=correct, 0=incorrect"
+ppvt_color2_low,color word comprehension test item (low nameability): chartreuse,"1=correct, 0=incorrect"
+ppvt_color3_low,color word comprehension test item (low nameability): sienna,"1=correct, 0=incorrect"
+ppvt_color4_low,color word comprehension test item (low nameability): teal,"1=correct, 0=incorrect"
+ppvt_color5_low,color word comprehension test item (low nameability): turquoise,"1=correct, 0=incorrect"
+ppvt_color6_low,color word comprehension test item (low nameability): honeydew,"1=correct, 0=incorrect"
+ppvt_1,short vocabulary measure/ PPVT item: cookie,"1=correct, 0=incorrect"
+ppvt_2,short vocabulary measure/ PPVT item: belt,"1=correct, 0=incorrect"
+ppvt_3,short vocabulary measure/ PPVT item: fence,"1=correct, 0=incorrect"
+ppvt_4,short vocabulary measure/ PPVT item: farm,"1=correct, 0=incorrect"
+ppvt_5,short vocabulary measure/ PPVT item: calendar,"1=correct, 0=incorrect"
+ppvt_6,short vocabulary measure/ PPVT item: dentist,"1=correct, 0=incorrect"
+ppvt_7,short vocabulary measure/ PPVT item: axe,"1=correct, 0=incorrect"
+ppvt_8,short vocabulary measure/ PPVT item: timer,"1=correct, 0=incorrect"
+ppvt_9,short vocabulary measure/ PPVT item: athlete,"1=correct, 0=incorrect"
+ppvt_10,short vocabulary measure/ PPVT item: hydrant,"1=correct, 0=incorrect"
+ppvt_11,short vocabulary measure/ PPVT item: tusk,"1=correct, 0=incorrect"
+ppvt_12,short vocabulary measure/ PPVT item: mammal,"1=correct, 0=incorrect"
+ppvt,participants' summed score on the short vocabulary measure ,
+color_ppvt_high,participants' summed score on the color word comprehension test for high nameability colors,
+color_ppvt_low,participants' summed score on the color word comprehension test for low nameability colors,

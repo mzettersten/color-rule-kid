@@ -1,0 +1,1022 @@
+---
+title: "Color Rule Kid Analysis"
+author: "Anonymized for peer review"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+knitr::opts_chunk$set(
+                prompt  = FALSE,
+                cache   = FALSE,
+                echo = TRUE,
+                warning=F,
+                message=F)
+set.seed(1025) #set seed (only relevant for jittering of data points in plots)
+
+```
+
+```{r load packages and data, include=FALSE}
+library(here)
+source(here::here("helper","summarizeData.R"))
+library(tidyverse)
+library(cowplot)
+library(lme4)
+library(car)
+library(lmerTest)
+library(janitor)
+library(ggpirate)
+theme_set(theme_cowplot())
+```
+
+Analysis walkthrough for the paper “Nameability Supports Rule-based Category Learning in Children and Adults” (authors removed, 2022).
+
+# Preparing the data
+
+We first set up the paths to relevant data files and read in the data. We also do some minimal data processing and remove any excluded participants (N=8; 8 additional excluded participants did not have response data to contribute: 4 due to an experimenter error, 4 due to not completing the experiment). See color_rule_kid_data_codebook.csv for information about individual columns.
+
+
+```{r}
+read_path <- here::here("..","data")
+model_output_path <- here::here("model_outputs")
+figure_path <- here::here("figures")
+d <- read.csv(here::here(read_path,"color_rule_kid_data.csv"))
+color_naming_adult <- read.csv(here::here(read_path,"color_nameability_adults.csv")) %>%
+  mutate(age_group="adult")
+color_naming_kid <- read.csv(here::here(read_path,"color_nameability_kids.csv")) %>%
+  mutate(age_group="kid")
+color_naming <- color_naming_adult %>%
+  bind_rows(color_naming_kid)
+
+#remove excluded data
+d <- d %>%
+  filter(exclude==0|is.na(exclude))
+```
+
+# Demographics {.tabset}
+
+## Children {.tabset}
+
+### Age, Gender
+
+```{r, message=F, warning=F}
+####summarize by subject####
+kid_subj <-  d %>%
+  filter(age_group=="kid") %>%
+  group_by(subject,condition, age_m,gender,race, ethnicity,language_history) %>%
+  summarize(
+    mean_learning_accuracy=mean(is_right[trial_kind=="learn"]),
+    mean_test_accuracy=mean(is_right[trial_kind=="test"]),
+    mean_test_accuracy_prototype=mean(is_right[trial_kind=="test"&stimulus_type=="prototype"]),
+    mean_test_accuracy_novel=mean(is_right[trial_kind=="test"&stimulus_type=="2-color-diff"])
+  )
+
+####summarize demographics####
+kid_demographics <-  kid_subj %>%
+  ungroup() %>%
+  summarize(N=n(), 
+            mean_age = round(mean(age_m,na.rm=TRUE),1), 
+            sd_age = round(sd(age_m,na.rm=TRUE),1), 
+            min_age = min(age_m,na.rm=TRUE), 
+            max_age = max(age_m,na.rm=TRUE),
+            count_female = sum(gender=='female'),
+            english_speaker=paste(100*sum(str_detect(language_history,"1"))/sum(language_history!=""),"%",sep=""),
+            bilingual=sum(language_history!="1"&language_history!="")
+            )
+kable(kid_demographics)
+```
+
+### Race
+
+```{r, message=F, warning=F}
+kid_subj %>%
+  group_by(race) %>%
+  summarize(count=n(),
+            percent=count/nrow(kid_subj)) %>%
+  kable()
+```
+
+### Ethnicity
+
+```{r, message=F, warning=F}
+kid_subj %>%
+  group_by(ethnicity) %>%
+  summarize(count=n(),
+            percent=count/nrow(kid_subj)) %>%
+  kable()
+```
+
+## Adults {.tabset}
+
+### Age, Gender
+
+```{r, message=F, warning=F}
+####summarize by subject####
+adult_subj <-  d %>%
+  filter(age_group=="adult") %>%
+  group_by(subject,condition, age_y,gender,l1) %>%
+  summarize(
+    mean_learning_accuracy=mean(is_right[trial_kind=="learn"]),
+    mean_test_accuracy=mean(is_right[trial_kind=="test"]),
+    mean_test_accuracy_prototype=mean(is_right[trial_kind=="test"&stimulus_type=="prototype"]),
+    mean_test_accuracy_novel=mean(is_right[trial_kind=="test"&stimulus_type=="2-color-diff"])
+  )
+####summarize demographics####
+adult_demographics <-  adult_subj %>%
+  ungroup() %>%
+  summarize(N=n(), 
+            mean_age = round(mean(age_y,na.rm=TRUE),1), 
+            sd_age = round(sd(age_y,na.rm=TRUE),1), 
+            min_age = min(age_y,na.rm=TRUE), 
+            max_age = max(age_y,na.rm=TRUE),
+            count_female = sum(gender=='female'),
+            english_l1 = sum(l1=="English")
+            )
+kable(adult_demographics)
+```
+
+# Training Accuracy {.tabset}
+
+
+## Adults {.tabset}
+
+### Main model
+
+To test the effect of nameability on category learning, we predicted participants’ trial-by-trial accuracy on training trials from Condition (centered; Low Nameability = -0.5, High Nameability = 0.5), Block Number (centered) and Experiment Round (centered), and all interactions between the three predictors in a logistic mixed-effects model. We fit the model with the maximal by-subject random effects structure, including a by-subject intercept and a by-subject random slopes for Block Number, Experiment Round, and their interaction. 
+
+```{r}
+#### training modeling ####
+m <- glmer(is_right~condition_c*block_c*round_c+(1+block_c*round_c|subject), data=subset(d, age_group=="adult" & trial_kind=="learn"), family=binomial,glmerControl(optimizer="bobyqa"))
+summary(m)
+#Anova(m, type="III") # chi-squared test yields virtually identical results
+confint(m, method="Wald")[11:18,]
+
+coefs <- summary(m)$coef %>%
+  as_tibble %>%
+  mutate_at(c("Estimate","Std. Error", "z value", "Pr(>|z|)"), 
+            function (x) signif(x, digits = 3)) %>%
+  rename(SE = `Std. Error`, 
+         z = `z value`,
+         p = `Pr(>|z|)`)
+
+rownames(coefs) <- c("Intercept", "Condition", "Block Number", "Round", 
+                     "Condition * Block Number","Condition * Round", "Block Number * Round", 
+                     "Condition * Block Number * Round")
+
+write.table(coefs, file=here::here(model_output_path,"adult_lme_model_output.csv"),sep=",")
+```
+
+### Simplified random effects
+
+While the model with the full random effects had a singular fit, simplifying the random effects structure did not meaningfully affect the main pattern of results from the model. Below, we successively prune random effects until no singular fit is obtained. The simplified model yields highly similar results to the model with the full random effects structure.
+
+```{r}
+#remove round random slope
+#m <- glmer(is_right~condition_c*block_c*round_c+(1+block_c+block_c:round_c|subject), data=filter(d, age_group=="adult" & trial_kind=="learn"), family=binomial,glmerControl(optimizer="bobyqa"))
+#model still yields a singular fit
+
+#remove random slope for block
+#m <- glmer(is_right~condition_c*block_c*round_c+(1+round_c+block_c:round_c|subject), data=filter(d, age_group=="adult" & trial_kind=="learn"), family=binomial,glmerControl(optimizer="bobyqa"))
+#model still yields a singular fit
+
+#remove both round and block random slopes
+m <- glmer(is_right~condition_c*block_c*round_c+(1+block_c:round_c|subject), data=filter(d, age_group=="adult" & trial_kind=="learn"), family=binomial,glmerControl(optimizer="bobyqa"))
+summary(m)
+#note that the round by block interaction now becomes significant after removing the random slopes - this effect is not of particular theoretical interest in the current study.
+```
+
+### Plot
+
+```{r}
+#summarize by block
+adult_training_by_block <-  d %>%
+  filter(age_group=="adult" & trial_kind=="learn") %>%
+  group_by(subject,condition,round,block) %>%
+  summarize(accuracy=mean(is_right)) %>%
+  summarySEwithin(measurevar="accuracy",betweenvars=c("condition"),withinvars=c("round","block"),idvar="subject") %>%
+  mutate(round_factor = case_when(
+    round=="1" ~ "Round 1",
+    round=="2" ~ "Round 2"
+  )) %>%
+  mutate(
+    lower_ci = accuracy - ci,
+    upper_ci = accuracy + ci
+  ) 
+# show by block learning accuracy as a table
+adult_training_by_block %>%
+  select(condition,N,round,block,accuracy,lower_ci,upper_ci) %>%
+  kable(digits=3)
+
+#learning phase
+ggplot(adult_training_by_block, aes(block,accuracy,color=condition,group=condition))+
+  geom_line(aes(linetype=condition),position=position_dodge(0.1),size=1.3)+
+  geom_point(aes(shape=condition),position=position_dodge(0.1),size=2.5)+
+  geom_errorbar(aes(ymin=accuracy-se,ymax=accuracy+se),width=0,size=0.5,position=position_dodge(.1))+
+  xlab("Block")+
+  ylab("Accuracy")+
+  scale_linetype_discrete(name="Nameability")+
+  scale_shape_discrete(name="Nameability")+
+  scale_color_brewer(palette="Set1",name="Nameability")+
+  #ggtitle("Performance during training")+
+  geom_hline(yintercept=0.5, linetype="dashed",size=1)+
+  theme(legend.position=c(0.3,0.3))+
+  theme(text=element_text(size=18))+
+  theme(strip.text.x = element_text(size=16), plot.background = element_rect(fill="white",color="white"))+
+  facet_wrap(~round_factor)+
+  ylim(0,1)
+ggsave(here::here("figures","adults_training_half.png"),width=8, height=5,dpi=600)
+```
+
+### Overall Accuracy
+
+```{r}
+adult_training_summarized <- adult_subj %>%
+  group_by(condition) %>%
+  summarize(
+    N=n(),
+    avg_accuracy = mean(mean_learning_accuracy),
+    avg_accuracy_ci = qt(0.975, N-1)*sd(mean_learning_accuracy,na.rm=TRUE)/sqrt(N),
+    avg_accuracy_lower_ci = avg_accuracy - avg_accuracy_ci,
+    avg_accuracy_upper_ci = avg_accuracy + avg_accuracy_ci,
+  )
+adult_training_summarized %>%
+  select(-avg_accuracy_ci) %>%
+  mutate(
+    ci = str_c("[",round(avg_accuracy_lower_ci,3),", ", round(avg_accuracy_upper_ci,3),"]")) %>%
+  select(condition,N,avg_accuracy,ci) %>%
+  kable(col.names=c("Condition", "N", "Average Accuracy","CI"),digits=3)
+```
+
+## Children {.tabset}
+
+### Main model
+
+To test the effect of nameability on category learning, we predicted participants’ trial-by-trial accuracy on training trials from Condition (centered; Low Nameability = -0.5, High Nameability = 0.5), Block Number (centered) and Experiment Round (centered), and all interactions between the three predictors in a logistic mixed-effects model. We fit the model with the maximal by-subject random effects structure, including a by-subject intercept and a by-subject random slopes for Block Number, Experiment Round, and their interaction. 
+
+```{r}
+#### training modeling ####
+m <- glmer(
+  is_right~condition_c*block_c*round_c+(1+block_c*round_c|subject), 
+  data=filter(d, age_group=="kid"  & trial_kind=="learn"),
+  family=binomial,
+  glmerControl(optimizer="bobyqa"))
+
+summary(m)
+#Anova(m, type="III") # chi-squared test yields virtually identical results
+confint(m, method="Wald")[11:18,]
+
+coefs <- summary(m)$coef %>%
+  as_tibble %>%
+  mutate_at(c("Estimate","Std. Error", "z value", "Pr(>|z|)"), 
+            function (x) signif(x, digits = 3)) %>%
+  rename(SE = `Std. Error`, 
+         z = `z value`,
+         p = `Pr(>|z|)`)
+
+rownames(coefs) <- c("Intercept", "Condition", "Block Number", "Round", 
+                     "Condition * Block Number","Condition * Round", "Block Number * Round", 
+                     "Condition * Block Number * Round")
+
+write.table(coefs, file=here::here(model_output_path,"kid_lme_model_output.csv"),sep=",")
+```
+
+### Simplified random effects
+
+While the model with the full random effects had a singular fit, simplifying the random effects structure did not meaningfully affect the pattern of results from the model. Below, we successively prune random effects until no singular fit is obtained. The simplified model yields highly similar results to the model with the full random effects structure.
+
+```{r}
+#remove block and round random slopes
+#m <- glmer(is_right~condition_c*block_c*round_c+(1+block_c:round_c|subject), data=filter(d, age_group=="kid" & trial_kind=="learn"), family=binomial,glmerControl(optimizer="bobyqa"))
+#model still yields a singular fit
+
+# remove interaction random effect
+#m <- glmer(is_right~condition_c*block_c*round_c+(1+block_c+round_c|subject), data=filter(d, age_group=="kid" & trial_kind=="learn"), family=binomial,glmerControl(optimizer="bobyqa"))
+# model still yields a singular fit
+
+# retain only the block random slope
+m <- glmer(is_right~condition_c*block_c*round_c+(1+block_c|subject), data=filter(d, age_group=="kid" & trial_kind=="learn"), family=binomial,glmerControl(optimizer="bobyqa"))
+summary(m)
+```
+
+### Block 3
+
+We tested for a condition difference in block 3 for both round 1 and round 2 by subsetting the data to the relevant block and predicting correct responses from condition in a logistic mixed-effects model.
+
+#### Block 3, Round 1
+
+```{r}
+#block 3, round 1
+m=glmer(is_right~condition_c+(1|subject), data=filter(d, age_group=="kid" &  trial_kind=="learn"& block==3 & round==1), family=binomial,glmerControl(optimizer="bobyqa"))
+summary(m)
+confint(m, method="Wald")[2:3,]
+```
+
+#### Block 3, Round 2
+
+```{r}
+#block 3, round 2
+m=glmer(is_right~condition_c+(1|subject), data=filter(d, age_group=="kid" &  trial_kind=="learn" & block==3 & round==2), family=binomial,glmerControl(optimizer="bobyqa"))
+summary(m)
+confint(m, method="Wald")[2:3,]
+```
+
+### Plot
+
+```{r}
+#summarize by block
+kid_training_by_block <-  d %>%
+  filter(age_group=="kid" & trial_kind=="learn") %>%
+  group_by(subject,condition,round,block) %>%
+  summarize(accuracy=mean(is_right)) %>%
+  summarySEwithin(measurevar="accuracy",betweenvars=c("condition"),withinvars=c("round","block"),idvar="subject") %>%
+  mutate(round_factor = case_when(
+    round=="1" ~ "Round 1",
+    round=="2" ~ "Round 2"
+  )) %>%
+  mutate(
+    lower_ci = accuracy - ci,
+    upper_ci = accuracy + ci
+  ) 
+# show by block learning accuracy as a table
+kid_training_by_block %>%
+  select(condition,N,round,block,accuracy,lower_ci,upper_ci) %>%
+  kable(digits=3)
+
+#learning phase plot
+ggplot(kid_training_by_block, aes(block,accuracy,color=condition,group=condition))+
+  geom_line(aes(linetype=condition),position=position_dodge(0.1),size=1.3)+
+  geom_point(aes(shape=condition),position=position_dodge(0.1),size=2.5)+
+  geom_errorbar(aes(ymin=accuracy-se,ymax=accuracy+se),width=0,size=0.5,position=position_dodge(.1))+
+  xlab("Block")+
+  ylab("Accuracy")+
+  scale_linetype_discrete(name="Nameability")+
+  scale_shape_discrete(name="Nameability")+
+  scale_color_brewer(palette="Set1",name="Nameability")+
+  #ggtitle("Performance during training")+
+  geom_hline(yintercept=0.5, linetype="dashed",size=1)+
+  theme(legend.position=c(0.3,0.3))+
+  theme(text=element_text(size=18))+
+  theme(strip.text.x = element_text(size=16), plot.background = element_rect(fill="white",color="white"))+
+  facet_wrap(~round_factor)+
+  ylim(0,1)
+ggsave(here::here("figures","kids_training_half.png"),width=8, height=5,dpi=600)
+```
+
+### Overall Accuracy
+
+```{r}
+kid_training_summarized <- kid_subj %>%
+  group_by(condition) %>%
+  summarize(
+    N=n(),
+    avg_accuracy = mean(mean_learning_accuracy),
+    avg_accuracy_ci = qt(0.975, N-1)*sd(mean_learning_accuracy,na.rm=TRUE)/sqrt(N),
+    avg_accuracy_lower_ci = avg_accuracy - avg_accuracy_ci,
+    avg_accuracy_upper_ci = avg_accuracy + avg_accuracy_ci,
+  )
+kid_training_summarized %>%
+  select(-avg_accuracy_ci) %>%
+  mutate(
+    ci = str_c("[",round(avg_accuracy_lower_ci,3),", ", round(avg_accuracy_upper_ci,3),"]")) %>%
+  select(condition,N,avg_accuracy,ci) %>%
+  kable(col.names=c("Condition", "N", "Average Accuracy","CI"),digits=3)
+```
+
+## Children vs. Adults {.tabset}
+
+### Main Model
+
+```{r}
+#full model
+m <- glmer(
+  is_right~condition_c*block_c*round_c*age_group_c+(1+block_c*round_c|subject), 
+  data=filter(d, trial_kind=="learn"),
+  family=binomial,
+  glmerControl(optimizer="bobyqa"))
+summary(m)
+#Anova(m, type="III") # chi-squared test yields virtually identical results
+confint(m, method="Wald")[11:26,]
+
+coefs <- summary(m)$coef %>%
+  as_tibble %>%
+  mutate_at(c("Estimate","Std. Error", "z value", "Pr(>|z|)"), 
+            function (x) signif(x, digits = 3)) %>%
+  rename(SE = `Std. Error`, 
+         z = `z value`,
+         p = `Pr(>|z|)`)
+
+rownames(coefs) <- c("Intercept",
+                     "Condition",
+                     "Block Number",
+                     "Round",
+                     "Age Group",
+                     "Condition * Block Number",
+                     "Condition * Round",
+                     "Block Number * Round",
+                     "Condition * Age Group",
+                     "Block Number * Age Group",
+                     "Round * Age Group",
+                     "Condition * Block Number * Round",
+                     "Condition * Block Number * Age Group",
+                     "Condition * Round * Age Group",
+                     "Block * Round * Age Group",
+                     "Condition * Block Number * Round * Age Group")
+
+write.table(coefs, file=here::here(model_output_path,"adult_vs_kid_lme_model_output.csv"),sep=",")
+```
+
+### Simplified random effects
+
+While the model with the full random effects had a singular fit, simplifying the random effects structure did not meaningfully affect the pattern of results from the model. Below, we successively prune random effects until no singular fit is obtained. The simplified model yields highly similar results to the model with the full random effects structure.
+
+```{r}
+#### pruning random effects structure to achieve convergence
+# remove random slope for block
+# m <- glmer(
+#   is_right~condition_c*block_c*round_c*age_group_c+(1+block_c+block_c:round_c|subject), 
+#   data=filter(d, trial_kind=="learn"),
+#   family=binomial,
+#   glmerControl(optimizer="bobyqa"))
+# model still yields a singular fit
+
+# remove random slope for round
+# m <- glmer(
+#   is_right~condition_c*block_c*round_c*age_group_c+(1+round_c+block_c:round_c|subject), 
+#   data=filter(d, trial_kind=="learn"),
+#   family=binomial,
+#   glmerControl(optimizer="bobyqa"))
+# model still yields a singular fit
+
+#retain only random intercept and random slope for block by round interaction
+m <- glmer(
+  is_right~condition_c*block_c*round_c*age_group_c+(1+block_c:round_c|subject), 
+  data=filter(d, trial_kind=="learn"),
+  family=binomial,
+  glmerControl(optimizer="bobyqa"))
+summary(m)
+```
+
+# Color Word and Vocabulary Knowledge {.tabset}
+
+## Color Naming {.tabset}
+
+```{r}
+#color sets
+high_colors <- c("blue","brown","orange","red","purple","yellow")
+low_colors <- c("chartreuse","honeydew","sienna","mauve","teal","turquoise")
+color_naming <- color_naming %>%
+  mutate(
+    color_nameability = case_when(
+      color %in% high_colors ~ "high",
+      color %in% low_colors ~ "low"
+    )
+  )
+
+#summarize
+summarize_color_naming <- color_naming %>%
+  group_by(age_group, color_nameability) %>%
+  summarize(
+    N = n(),
+    mean_simpson_diversity = mean(simpson_diversity,na.rm=TRUE),
+    simpson_diversity_ci = qt(0.975, N-1)*sd(simpson_diversity,na.rm=TRUE)/sqrt(N),
+    simpson_diversity_lower_ci = mean_simpson_diversity - simpson_diversity_ci,
+    simpson_diversity_upper_ci = mean_simpson_diversity + simpson_diversity_ci
+  )
+```
+
+### Overall Simpson Diversity
+
+
+```{r}
+summarize_color_naming %>%
+  select(-simpson_diversity_ci) %>%
+  kable(digits=2,caption="Average Simpson Diversity by age group and color nameability", col.names=c("Age Group","Color Nameability","N","Average Simpson Diversity", "Lower 95% CI","Upper 95% CI"))
+```
+
+
+### Simpson Diversity by Color
+
+```{r}
+#table of comprehension accuracy by color
+color_naming %>%
+  select(age_group,color_nameability,color,simpson_diversity) %>%
+  group_by(color_nameability,color) %>%
+  pivot_wider(
+    names_from = age_group,
+    values_from = simpson_diversity
+  ) %>%
+  arrange(color_nameability,color) %>%
+  kable(digits=2,caption="Average Simpson Diversity by color for each age group",col.names=
+          c("Color Nameability","Color","Adults","Children"))
+```
+
+### Adults
+
+Adults named high nameability colors more consistently than low nameability colors.
+
+```{r}
+t.test(
+  filter(color_naming, age_group == "adult" & color_nameability == "high")$simpson_diversity,
+  filter(color_naming, age_group == "adult" & color_nameability == "low")$simpson_diversity,
+  var.equal=T)
+```
+
+### Children
+
+Children named high nameability colors more consistently than low nameability colors.
+
+```{r}
+t.test(
+  filter(color_naming, age_group == "kid" & color_nameability == "high")$simpson_diversity,
+  filter(color_naming, age_group == "kid" & color_nameability == "low")$simpson_diversity,
+  var.equal=T)
+```
+
+### Children vs. Adults
+
+The nameability did not differ between children and adults, either for highly nameable colors or for more difficult-to-name colors
+
+#### High-Nameability Colors
+
+```{r}
+#adults vs. kids
+## high nameability colors
+t.test(
+  filter(color_naming, age_group == "adult" & color_nameability == "high")$simpson_diversity,
+  filter(color_naming, age_group == "kid" & color_nameability == "high")$simpson_diversity,
+  paired=T)
+```
+
+#### Low-Nameability Colors
+
+```{r}
+## low nameability colors
+t.test(
+  filter(color_naming, age_group == "adult" & color_nameability == "low")$simpson_diversity,
+  filter(color_naming, age_group == "kid" & color_nameability == "low")$simpson_diversity,
+  paired=T)
+```
+
+## Color Comprehension {.tabset}
+
+```{r}
+#color comprehension scores
+subj_color_comprehension <- d %>%
+  distinct(subject,age_group,color_ppvt_high,color_ppvt_low) %>%
+  mutate(
+    percent_color_ppvt_high = color_ppvt_high / 6,
+    percent_color_ppvt_low = color_ppvt_low / 6
+  )
+
+#summarize
+summarize_color_comprehension <- subj_color_comprehension %>%
+  group_by(age_group) %>%
+  summarize(
+    N = n(),
+    mean_color_ppvt_high = mean(color_ppvt_high,na.rm=TRUE),
+    mean_color_ppvt_low = mean(color_ppvt_low,na.rm=TRUE),
+    mean_percent_color_ppvt_high = mean(percent_color_ppvt_high,na.rm=TRUE),
+    mean_percent_color_ppvt_low = mean(percent_color_ppvt_low,na.rm=TRUE),
+    percent_color_ppvt_high_ci = qt(0.975, N-1)*sd(percent_color_ppvt_high,na.rm=TRUE)/sqrt(N),
+    percent_color_ppvt_high_lower_ci = mean_percent_color_ppvt_high - percent_color_ppvt_high_ci,
+    percent_color_ppvt_high_upper_ci = mean_percent_color_ppvt_high + percent_color_ppvt_high_ci,
+    percent_color_ppvt_low_ci = qt(0.975, N-1)*sd(percent_color_ppvt_low ,na.rm=TRUE)/sqrt(N),
+    percent_color_ppvt_low_lower_ci = mean_percent_color_ppvt_low - percent_color_ppvt_low_ci,
+    percent_color_ppvt_low_upper_ci = mean_percent_color_ppvt_low + percent_color_ppvt_low_ci
+  )
+
+#accuracy by color
+summarize_color_accuracy <- d %>%
+  distinct(subject,age_group,ppvt_color1_high,ppvt_color2_high,ppvt_color3_high,ppvt_color4_high,ppvt_color5_high,ppvt_color6_high,ppvt_color1_low,ppvt_color2_low,ppvt_color3_low,ppvt_color4_low,ppvt_color5_low,ppvt_color6_low) %>%
+  pivot_longer(cols = ppvt_color1_high:ppvt_color6_low,names_to="color_stim",values_to = "correct") %>%
+  mutate(
+    color = case_when(
+      color_stim == "ppvt_color1_high" ~ "purple",
+      color_stim == "ppvt_color2_high"	~ "orange",
+      color_stim == "ppvt_color3_high" ~ "yellow",
+      color_stim == "ppvt_color4_high" ~ "brown",
+      color_stim == "ppvt_color5_high" ~	"blue",
+      color_stim == "ppvt_color6_high" ~ "red",
+      color_stim == "ppvt_color1_low"	 ~ "mauve",
+      color_stim == "ppvt_color2_low"	~ "chartreuse",
+      color_stim == "ppvt_color3_low"	~ "sienna",
+      color_stim == "ppvt_color4_low"	~ "teal",
+      color_stim == "ppvt_color5_low"	~ "turquoise",
+      color_stim == "ppvt_color6_low"	~ "honeydew"
+    )
+  ) %>%
+  mutate(
+    color_nameability = case_when(
+      str_detect(color_stim,"high") ~ "high",
+      str_detect(color_stim,"low") ~ "low")
+  ) %>%
+  group_by(age_group,color,color_nameability) %>%
+  summarize(
+    comprehension_accuracy = mean(correct)
+  ) %>%
+  pivot_wider(
+    names_from = age_group,
+    values_from = comprehension_accuracy
+  ) %>%
+  arrange(color_nameability,color)
+```
+
+### Overall Color Comprehension
+
+```{r}
+summarize_color_comprehension %>%
+  mutate(
+     percent_color_ppvt_high_ci = str_c("[",round(percent_color_ppvt_high_lower_ci,3),", ", round(percent_color_ppvt_high_upper_ci,3),"]"),
+    percent_color_ppvt_low_ci = str_c("[",round(percent_color_ppvt_low_lower_ci,3),", ", round(percent_color_ppvt_low_upper_ci,3),"]"),
+  ) %>%
+  select(mean_percent_color_ppvt_high,
+         percent_color_ppvt_high_ci,
+         mean_percent_color_ppvt_low,
+         percent_color_ppvt_low_ci) %>%
+  kable(digits=3,col.names = c("High Nameability Accuracy","High Nameability 95% CI","Low Nameability Accuracy","Low Nameability 95% CI"),caption="Average color comprehension by age group and color nameability")
+```
+
+### Comprehension by Color Word
+
+Below is a table of average comprehension accuracy by color for each age group
+
+```{r}
+#table of comprehension accuracy by color
+summarize_color_accuracy %>%
+  kable(digits=2)
+```
+
+### Adults
+
+Adults were more accurate in identifying high nameability colors than low nameability colors in the comprehension task.
+
+```{r}
+t.test(filter(subj_color_comprehension, age_group=="adult")$percent_color_ppvt_high,filter(subj_color_comprehension, age_group=="adult")$percent_color_ppvt_low,paired=TRUE)
+```
+
+### Children
+
+Children were more accurate in identifying high nameability colors than low nameability colors in the comprehension task.
+
+```{r}
+t.test(filter(subj_color_comprehension, age_group=="kid")$percent_color_ppvt_high,filter(subj_color_comprehension, age_group=="kid")$percent_color_ppvt_low,paired=TRUE)
+```
+
+Children were still above chance (1 in 6) for low nameability colors.
+
+```{r}
+t.test(filter(subj_color_comprehension, age_group=="kid")$percent_color_ppvt_low, mu=1/6)
+```
+
+## Vocabulary Test
+
+```{r}
+#color comprehension scores
+subj_vocab_comprehension <- d %>%
+  distinct(subject,condition,age_group,ppvt) %>%
+  mutate(
+    percent_ppvt = ppvt / 12
+  )
+
+#summarize
+summarize_vocab_comprehension <- subj_vocab_comprehension %>%
+  group_by(age_group,condition) %>%
+  summarize(
+    N = n(),
+    mean_ppvt = mean(ppvt,na.rm=TRUE),
+    mean_percent_ppvt = mean(percent_ppvt,na.rm=TRUE),
+    percent_ppvt_ci = qt(0.975, N-1)*sd(percent_ppvt,na.rm=TRUE)/sqrt(N),
+    percent_ppvt_lower_ci = mean_percent_ppvt - percent_ppvt_ci,
+    percent_ppvt_upper_ci = mean_percent_ppvt + percent_ppvt_ci
+  )
+```
+
+Accuracy on the vocabulary test did not differ between High and Low Nameability conditions for either adults or children.
+
+```{r}
+#adults
+t.test(filter(subj_vocab_comprehension,age_group=="adult"&condition=="high")$percent_ppvt,filter(subj_vocab_comprehension,age_group=="adult"&condition=="low")$percent_ppvt,var.equal=TRUE)
+#kids
+t.test(filter(subj_vocab_comprehension,age_group=="kid"&condition=="high")$percent_ppvt,filter(subj_vocab_comprehension,age_group=="kid"&condition=="low")$percent_ppvt,var.equal=TRUE)
+```
+
+On average, children scored lower than adults in the task.
+
+```{r}
+#comparison
+t.test(filter(subj_vocab_comprehension,age_group=="adult")$percent_ppvt,filter(subj_vocab_comprehension,age_group=="kid")$percent_ppvt,var.equal=TRUE)
+#adult average performance
+t.test(filter(subj_vocab_comprehension,age_group=="adult")$percent_ppvt)
+#kids average performance
+t.test(filter(subj_vocab_comprehension,age_group=="kid")$percent_ppvt)
+```
+
+# Relationship between category learning and color word knowledge {.tabset}
+
+To investigate whether variability in participants’ knowledge of low nameability color words predicted category learning accuracy, we fit a linear model, separately for adults and for children, predicting overall category learning accuracy from low nameability color comprehension, condition (centered; high=0.5, low=-0.5), and their interaction. 
+
+## Adults
+
+```{r}
+#summarize accuracy
+subj_accuracy <- d %>%
+  filter(trial_kind=="learn") %>%
+  group_by(subject,age_group,age_m,age_c,condition,condition_c,color_ppvt_high,color_ppvt_low) %>%
+  dplyr::summarize(
+    training_accuracy=mean(is_right,na.rm=TRUE),
+    percent_color_ppvt_high = mean(color_ppvt_high) / 6,
+    percent_color_ppvt_low = mean(color_ppvt_low) / 6,
+    percent_ppvt = mean(ppvt) / 12
+  )
+
+#fit interaction model
+m <- lm(training_accuracy ~ condition_c * percent_color_ppvt_low,data=filter(subj_accuracy, age_group=="adult"))
+summary(m)
+```
+
+## Children
+
+```{r}
+#fit interaction model
+m <- lm(training_accuracy ~ condition_c * color_ppvt_low,data=filter(subj_accuracy, age_group=="kid"))
+summary(m)
+confint(m)
+``` 
+
+Low nameability color knowledge predicted accurary in the low nameability condition.
+
+```{r}
+#recenter to predict effect of low nameability color knowledge in low nameability condition
+subj_accuracy <- subj_accuracy %>%
+  mutate(
+    condition_low = condition_c + 0.5,
+    condition_high = condition_c - 0.5
+  )
+m <- lm(training_accuracy ~ condition_low * color_ppvt_low,data=filter(subj_accuracy, age_group=="kid"))
+summary(m)
+confint(m)
+```
+
+There was no effect of low nameability color knowledge in the high nameability condition.
+
+```{r}
+#no effect of low nameability color knowledge in the high nameability condition
+m <- lm(training_accuracy ~ condition_high * color_ppvt_low,data=filter(subj_accuracy, age_group=="kid"))
+summary(m)
+```
+
+Qualitatively equivalent results were obtained when controlling for (non-color) vocabulary knowledge and participant age. 
+
+```{r}
+m <- lm(training_accuracy ~ condition_c * color_ppvt_low+age_c+percent_ppvt,data=filter(subj_accuracy, age_group=="kid"))
+summary(m)
+```
+
+
+## Plot
+
+```{r}
+subj_accuracy <- subj_accuracy %>%
+  mutate(age_group_clean = case_when(
+    age_group == "adult" ~ "adults",
+    age_group == "kid" ~ "children"))
+ggplot(subj_accuracy,aes(color_ppvt_low,training_accuracy, color=condition))+
+  geom_jitter(width=0.1,height=0.02)+
+  geom_smooth(method="lm")+
+  ylab("Overall Categorization Accuracy")+
+  scale_color_brewer(palette="Set1",name="Nameability")+
+  xlab("Comprehension of harder to name color words")+
+  facet_wrap(~age_group_clean)+
+  theme(legend.position=c(0.3,0.3), plot.background = element_rect(fill="white",color="white"))+
+  geom_hline(yintercept=0.5, linetype="dashed",size=1)
+ggsave(here::here(figure_path,"kids_adults_low_color_ppvt.png"),width=7, height=5,dpi=600)
+```
+
+
+# Supplementary: Test Phase
+
+## Adults {.tabset}
+
+### Accuracy by each stimulus type
+
+```{r}
+adult_test_summarized <- adult_subj %>%
+  group_by(condition) %>%
+  summarize(
+    N=n(),
+    avg_test_prototype = mean(mean_test_accuracy_prototype),
+    test_prototype_ci = qt(0.975, N-1)*sd(mean_test_accuracy_prototype,na.rm=TRUE)/sqrt(N),
+    test_prototype_lower_ci = avg_test_prototype - test_prototype_ci,
+    test_prototype_upper_ci = avg_test_prototype + test_prototype_ci,
+    avg_test_novel = mean(mean_test_accuracy_novel),
+    test_novel_ci = qt(0.975, N-1)*sd(mean_test_accuracy_novel,na.rm=TRUE)/sqrt(N),
+    test_novel_lower_ci = avg_test_novel - test_novel_ci,
+    test_novel_upper_ci = avg_test_novel + test_novel_ci,
+  )
+adult_test_summarized %>%
+  select(-test_prototype_ci,-test_novel_ci) %>%
+  mutate(
+    prototype_ci = str_c("[",round(test_prototype_lower_ci,3),", ", round(test_prototype_upper_ci,3),"]"),
+    novel_ci = str_c("[",round(test_novel_lower_ci,3),", ", round(test_novel_upper_ci,3),"]")
+  ) %>%
+  select(condition,N,avg_test_prototype,prototype_ci,avg_test_novel,novel_ci) %>%
+  kable(col.names=c("Condition", "N", "Average Accuracy Prototype","Prototype CI", "Average Accuracy Novel","Novel CI"),digits=3)
+```
+
+We also investigated the proportion of participants who sorted the novel test exemplars into one category or the other, i.e. consistently according to the 100% predictive color feature, or consistently in accordance with the 75% predictive color features. 
+
+```{r}
+#proportion of consistent categorizers
+adult_consistent_count <- adult_subj %>%
+  group_by(condition) %>%
+  summarize(count_consistent=sum(mean_test_accuracy_novel==1 |mean_test_accuracy_novel==0),count_inconsistent=sum(mean_test_accuracy_novel!=1 &mean_test_accuracy_novel!=0), count_consistent_percent=count_consistent/(count_consistent+count_inconsistent))
+chisq.test(as.matrix(select(adult_consistent_count, c(count_consistent,count_inconsistent))))
+```
+
+### Main Model
+
+To test for differences between condition, we fit a logistic mixed-effects model predicting trial-by-trial accuracy from condition (centered) while controlling for stimulus type (centered). We included a by-subject random intercept and a by-subject random slope for stimulus type. 
+
+```{r}
+m=glmer(is_right ~condition_c+stimulus_test_type_c+(1+stimulus_test_type_c|subject), data=filter(d, age_group=="adult" & trial_kind=="test"), family=binomial)
+summary(m)
+confint(m, method="Wald")[4:6,]
+```
+
+## Children {.tabset}
+
+### Accuracy by each stimulus type
+
+```{r}
+kid_test_summarized <- kid_subj %>%
+  group_by(condition) %>%
+  summarize(
+    N=n(),
+    avg_test_prototype = mean(mean_test_accuracy_prototype),
+    test_prototype_ci = qt(0.975, N-1)*sd(mean_test_accuracy_prototype,na.rm=TRUE)/sqrt(N),
+    test_prototype_lower_ci = avg_test_prototype - test_prototype_ci,
+    test_prototype_upper_ci = avg_test_prototype + test_prototype_ci,
+    avg_test_novel = mean(mean_test_accuracy_novel),
+    test_novel_ci = qt(0.975, N-1)*sd(mean_test_accuracy_novel,na.rm=TRUE)/sqrt(N),
+    test_novel_lower_ci = avg_test_novel - test_novel_ci,
+    test_novel_upper_ci = avg_test_novel + test_novel_ci,
+  )
+kid_test_summarized %>%
+  select(-test_prototype_ci,-test_novel_ci) %>%
+  mutate(
+    prototype_ci = str_c("[",round(test_prototype_lower_ci,3),", ", round(test_prototype_upper_ci,3),"]"),
+    novel_ci = str_c("[",round(test_novel_lower_ci,3),", ", round(test_novel_upper_ci,3),"]")
+  ) %>%
+  select(condition,N,avg_test_prototype,prototype_ci,avg_test_novel,novel_ci) %>%
+  kable(col.names=c("Condition", "N", "Average Accuracy Prototype","Prototype CI", "Average Accuracy Novel","Novel CI"),digits=3)
+```
+
+We also investigated the proportion of participants who sorted the novel test exemplars into one category or the other, i.e. consistently according to the 100% predictive color feature, or consistently in accordance with the 75% predictive color features. 
+
+```{r}
+#proportion of consistent categorizers
+kid_consistent_count <- kid_subj %>%
+  group_by(condition) %>%
+  summarize(count_consistent=sum(mean_test_accuracy_novel==1 |mean_test_accuracy_novel==0),count_inconsistent=sum(mean_test_accuracy_novel!=1 &mean_test_accuracy_novel!=0), count_consistent_percent=count_consistent/(count_consistent+count_inconsistent))
+chisq.test(as.matrix(select(kid_consistent_count, c(count_consistent,count_inconsistent))))
+```
+
+### Main Model
+
+To test for differences between condition, we fit a logistic mixed-effects model predicting trial-by-trial accuracy from condition (centered) while controlling for stimulus type (centered). We included a by-subject random intercept and a by-subject random slope for stimulus type. 
+
+```{r}
+m=glmer(is_right ~condition_c+stimulus_test_type_c+(1+stimulus_test_type_c|subject), data=filter(d, age_group=="kid" & trial_kind=="test"), family=binomial)
+summary(m)
+confint(m, method="Wald")[4:6,]
+```
+
+Qualitatively similar results were obtained in a model additionally controlling for the effect of participant age.
+
+```{r}
+#controlling for age
+m=glmer(is_right ~condition_c+stimulus_test_type_c+age_c+(1+stimulus_test_type_c|subject), data=filter(d, age_group=="kid" & trial_kind=="test"), family=binomial)
+summary(m)
+confint(m, method="Wald")[4:7,]
+```
+
+
+## Children vs. Adults {.tabset}
+
+### Main Model
+
+Next, we tested for differences between children and adults by fitting a logistic mixed-effects model predicting trial-by-trial accuracy from condition, stimulus type, age group (centered; children vs. adults) and the 2-way interactions between condition and age group as well as stimulus type and age group. We included a by-subject random intercept and a by-subject random slope for stimulus test type.
+
+```{r}
+#full model - does not converge
+m <- glmer(
+  is_right~(condition_c+stimulus_test_type_c)*age_group_c+(1+stimulus_test_type_c|subject), 
+  data=filter(d, trial_kind=="test"),
+  family=binomial,
+  glmerControl(optimizer="bobyqa"))
+summary(m)
+#Anova(m, type="III") # chi-squared test yields virtually identical results
+confint(m, method="Wald")[4:9,]
+```
+
+We also compared adults and children in the consistency with which they sorted novel items into one category or the other. Adults were far more likely to consistently assign a given 2-color difference item to a given category in both the High Nameability condition and the Low Nameability condition.
+
+```{r}
+###adults vs. kids 
+adult_consistent_count$ageGroup <- "adults"
+kid_consistent_count$ageGroup <- "kids"
+consistent_count <- bind_rows(kid_consistent_count, adult_consistent_count)
+#high
+chisq.test(as.matrix(select(filter(consistent_count,condition=="high"), c(count_consistent,count_inconsistent))))
+#low
+chisq.test(as.matrix(select(filter(consistent_count,condition=="low"), c(count_consistent,count_inconsistent))))
+```
+
+### Plot
+
+```{r}
+kid_test_long <- kid_subj %>%
+  pivot_longer(
+    cols=c(mean_test_accuracy_prototype, mean_test_accuracy_novel),
+    names_to="stimulus_type",
+    names_prefix="mean_test_accuracy_",
+    values_to="accuracy")
+
+adult_test_long <- adult_subj %>%
+  pivot_longer(
+    cols=c(mean_test_accuracy_prototype, mean_test_accuracy_novel),
+    names_to="stimulus_type",
+    names_prefix="mean_test_accuracy_",
+    values_to="accuracy")
+
+p1 <- ggplot(kid_test_long,aes(stimulus_type,accuracy,fill=condition,color=condition))+
+  geom_hline(yintercept=0.5, linetype="dashed",size=1)+
+  geom_pirate(jitter_width=0.2,points_params=list(size=1.8,shape=21,alpha=0.9),violins_params=list(width=0.4))+
+  scale_color_brewer(palette = "Set1") +
+  scale_fill_brewer(palette = "Set1") +
+  facet_wrap(~condition)+
+  ylab("Accuracy")+
+  scale_x_discrete(name="Stimulus Type",
+                   limits=c("prototype","novel"))+
+  ggtitle("Children")+
+  theme(plot.title = element_text(hjust = 0.5,size=24), plot.background = element_rect(fill="white",color="white"))
+p2 <- ggplot(adult_test_long,aes(stimulus_type,accuracy,fill=condition,color=condition))+
+  geom_hline(yintercept=0.5, linetype="dashed",size=1)+
+  geom_pirate(jitter_width=0.2,points_params=list(size=1.8,shape=21,alpha=0.9),violins_params=list(width=0.4))+
+  scale_color_brewer(palette = "Set1") +
+  scale_fill_brewer(palette = "Set1") +
+  facet_wrap(~condition)+
+  ylab("Accuracy")+
+  scale_x_discrete(name="Stimulus Type",
+                   limits=c("prototype","novel"))+
+  ggtitle("Adults")+
+  theme(plot.title = element_text(hjust = 0.5,size=24), plot.background = element_rect(fill="white",color="white"))
+plot_grid(p2,p1,labels=c("A","B"),label_size=18)
+ggsave(here::here("figures","test_accuracy.png"),width=12, height=6,dpi=600)
+```
+
+
+### Relation between test phase accuracy and color word knowledge
+
+In order to investigate the effect of low nameability color word comprehension on final test accuracy, we fit linear models, separately for adult participants and for child participants, predicting accuracy during the final test phase from the interaction between low nameability color comprehension and condition. 
+
+#### Adults
+
+```{r}
+#summarize accuracy
+subj_test_accuracy <- d %>%
+  filter(trial_kind=="test") %>%
+  group_by(subject,age_group,age_m,age_c,condition,condition_c,color_ppvt_high,color_ppvt_low) %>%
+  dplyr::summarize(
+    test_accuracy=mean(is_right,na.rm=TRUE),
+    percent_color_ppvt_high = mean(color_ppvt_high) / 6,
+    percent_color_ppvt_low = mean(color_ppvt_low) / 6,
+    percent_ppvt = mean(ppvt) / 12
+  )
+
+m <- lm(test_accuracy ~ condition_c * percent_color_ppvt_low,data=filter(subj_test_accuracy, age_group=="adult"))
+summary(m)
+```
+
+#### Children
+
+```{r}
+m <- lm(test_accuracy ~ condition_c * percent_color_ppvt_low,data=filter(subj_test_accuracy, age_group=="kid"))
+summary(m)
+```
+
+
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
