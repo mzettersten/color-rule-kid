@@ -18,6 +18,7 @@ The repository contains the following documents:
 
 ## Link to OSF project
 
+https://osf.io/3y4ck/?view_only=ac3e90046638478eafc0dff59495f655
 
 ## Analysis Walkthrough
 
