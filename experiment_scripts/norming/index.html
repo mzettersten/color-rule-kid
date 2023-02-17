@@ -21,12 +21,37 @@
   fullscreen_mode: true
 }
 //timeline.push(enter_fullscreen)
+
+trial_images = generate_images();
+practice_images = ["stimuli/star.png","stimuli/rectangle.png","stimuli/square.png","stimuli/diamond.png","stimuli/triangle.png","stimuli/pentagram.png"]
+reward_images = ["stimuli/round_1.png","stimuli/round_2.png","stimuli/round_3.png","stimuli/round_4.png","stimuli/round_5.png","stimuli/round_6.png","stimuli/fireworks.png","stimuli/twohands.png"]
   
   timeline.push({
     type: 'preload',
 	  images: generate_images(),
-	  audio: ["stimuli/bleep.m4a","stimuli/buzz.m4a"]
+	  audio: ["stimuli/bleep.m4a","stimuli/buzz.m4a","stimuli/tada.m4a"]
   });
+
+
+var test_button = {
+  type: 'html-button-response',
+  stimulus: "",
+  choices: ["<img src='stimuli/twohands.png' width='300'>"]
+}
+
+timeline.push(test_button);
+
+var practice_timeline = [];
+var practice_trial_1 = generate_trial("star","square",["square","star"],audio_feedback=true)
+var practice_trial_2 = generate_trial("triangle","pentagram",["triangle","pentagram"],audio_feedback=true)
+var practice_trial_3 = generate_trial("diamond","rectangle",["rectangle","diamond"],audio_feedback=true)
+var practice_trial_4 = generate_trial("pentagram","star",["pentagram","star"],audio_feedback=true)
+
+practice_timeline = practice_trial_1.concat(practice_trial_2, practice_trial_3);
+
+timeline = timeline.concat(practice_timeline);
+
+timeline.push(test_button);
 
   var trial_timeline = generate_block();
 
