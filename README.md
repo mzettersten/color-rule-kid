@@ -15,6 +15,7 @@ The repository contains the following documents:
 - **data**: experimental data and codebook
 - **analysis_scripts**: R scripts analyzing the data as well as outputs from the analyses (model outputs and figures)
 - **experiment_scripts:** Experimental scripts used to present the experiment (python-/ psychopy-based)
+- **norming_results:** Data and analysis scripts for the perceptual discriminability norming task
 
 ## Link to OSF project
 
@@ -25,6 +26,10 @@ https://osf.io/3y4ck/?view_only=ac3e90046638478eafc0dff59495f655
 Here is a direct link to the html rendering of the R Markdown file in the data folder. This provides a walkthrough of the major analyses in the paper:
 
 https://rpubs.com/zcm/color-rule-kid
+
+We also provide a separate walkthrough of the results from the perceptual discriminability norming study:
+
+https://rpubs.com/zcm/color-rule-kid-norming
 
 ## Questions
 
