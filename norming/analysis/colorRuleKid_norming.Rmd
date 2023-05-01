@@ -1,0 +1,1071 @@
+---
+title: "Color Rule Kid - Norming Data"
+author: "Anonymized for peer review"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+knitr::opts_chunk$set(
+                prompt  = FALSE,
+                cache   = FALSE,
+                echo = TRUE,
+                warning=F,
+                message=F)
+set.seed(1025) #set seed (only relevant for jittering of data points in plots)
+
+```
+
+```{r load packages and data, include=FALSE}
+source(here::here("summarizeData.R"))
+library(here)
+library(tidyverse)
+library(cowplot)
+library(lme4)
+library(car)
+library(lmerTest)
+library(janitor)
+library(ggpirate)
+library(jsonlite)
+library(BayesFactor)
+theme_set(theme_cowplot())
+library(effectsize)
+#source(here::here("summarizeData_new.R"))
+```
+
+Summarizes the results from a color discriminability norming study reported in the paper “Nameability Supports Rule-based Category Learning in Children and Adults” (authors removed, 2023).
+
+# Read in and processing data {.tabset}
+
+```{r cars}
+kn_data <- read_csv(here::here("..","data","processed_data","ckn_v1_processed.csv")) %>%
+  mutate(age_group="children")
+an_data <- read_csv(here::here("..","data","processed_data","can_v1_processed.csv")) %>%
+  mutate(age_group="adults")
+
+#read in the color discriminability data from Zettersten & Lupyan (2020)
+color_properties_zl <- read_csv(here::here("..","data","processed_data","color_properties.csv")) %>%
+  filter(colorSet=="colorset1")
+colorpair_discrim_rt_zl <- read_csv(here::here("..","data","processed_data","color_properties_discriminability.csv")) %>%
+  filter(colorSet=="colorset1") %>%
+  rename(zl_average_rt=average_rt) %>%
+  mutate(
+    pair = case_when(
+      colorPair=="bluebrown" ~ "blue - brown"
+    )
+  )
+
+kn_subj <- read_csv(here::here("..","data","subj_data","ckn_subjlog_anonymized.csv")) %>%
+  clean_names()
+
+kn_data <- kn_data %>%
+  left_join(kn_subj,by=c("subject_id"="participant_id"))
+```
+
+## Read demographics
+
+```{r}
+kn_demographics <- read_csv(here::here("..","data","processed_data","colorrulekid_demographics.csv")) %>%
+  clean_names() %>%
+  rename(subject_id=participant_id) %>%
+  mutate(age_months=as.numeric(age_months)) %>%
+  mutate(
+    gender = case_when(
+      gender==0 ~ "female",
+      gender==1 ~ "male",
+      TRUE ~ NA_character_),
+    race = case_when(
+      race==1 ~ "American Indian or Alaska Native",
+      race==2 ~ "Asian",
+      race==3 ~ "Black or African American",
+      race==4 ~ "Native Hawaiian or Other Pacific Islander",
+      race==5 ~ "White",
+      race==6 ~ "More than one race",
+      race==7 ~ "Prefer not to disclose",
+      TRUE ~ NA_character_
+    ),
+    ethnicity=case_when(
+      ethnicity == 1 ~ "Hispanic or Latino",
+      ethnicity == 2 ~ "Not Hispanic or Latino",
+      ethnicity == 3 ~ "Prefer not to disclose",
+      TRUE ~ NA_character_
+    ),
+    parental_education_category = case_when(
+      parental_education == 1 ~ "Some high school",
+       parental_education == 2 ~ "High school graduate", 
+       parental_education == 3 ~ "Some college", 
+       parental_education == 4 ~ "Trade/technical/vocational training", 
+       parental_education == 5 ~ "College graduate",
+      parental_education == 6 ~ "Postgraduate",
+      parental_education == 7 ~ "Prefer not to disclose"
+    ),
+    household_income_category = case_when(
+      home_income == 1 ~ "less than $24,999",
+       home_income == 2 ~ "$25,000 to $49,999", 
+       home_income == 3 ~ "$50,000 to 99,999", 
+       home_income == 4 ~ "$100,000 or more", 
+       home_income == 5 ~ "Prefer not to disclose"
+    ))
+an_demographics <- read_csv(here::here("..","data","processed_data","colorruleadults_demographics.csv")) %>%
+  clean_names()%>%
+  rename(subject_id=participant_id)%>%
+  mutate(age=as.numeric(age)) %>%
+  mutate(
+    gender = case_when(
+      gender==0 ~ "female",
+      gender==1 ~ "male",
+      TRUE ~ NA_character_),
+    race = case_when(
+      race==1 ~ "American Indian or Alaska Native",
+      race==2 ~ "Asian",
+      race==3 ~ "Black or African American",
+      race==4 ~ "Native Hawaiian or Other Pacific Islander",
+      race==5 ~ "White",
+      race==6 ~ "More than one race",
+      race==7 ~ "Prefer not to disclose",
+      TRUE ~ NA_character_
+    ),
+    ethnicity=case_when(
+      ethnicity == 1 ~ "Hispanic or Latino",
+      ethnicity == 2 ~ "Not Hispanic or Latino",
+      ethnicity == 3 ~ "Prefer not to disclose",
+      TRUE ~ NA_character_
+    ),
+    parental_education_category = case_when(
+      parental_education == 1 ~ "Some high school",
+       parental_education == 2 ~ "High school graduate", 
+       parental_education == 3 ~ "Some college", 
+       parental_education == 4 ~ "Trade/technical/vocational training", 
+       parental_education == 5 ~ "College graduate",
+      parental_education == 6 ~ "Postgraduate",
+      parental_education == 7 ~ "Prefer not to disclose"
+    ),
+    household_income_category = case_when(
+      home_income == 1 ~ "less than $24,999",
+       home_income == 2 ~ "$25,000 to $49,999", 
+       home_income == 3 ~ "$50,000 to 99,999", 
+       home_income == 4 ~ "$100,000 or more", 
+       home_income == 5 ~ "Prefer not to disclose"
+    ))
+```
+
+## Processing data
+
+```{r}
+kn_data <- kn_data %>%
+  rowwise() %>%
+  mutate(pair = paste(sort(c(target, foil)), collapse = " - "),colorPair=paste(sort(c(target, foil)), collapse = "")) %>%
+  ungroup() %>%
+  left_join(kn_demographics) %>%
+  mutate(
+    condition_c=case_when(
+      condition=="high nameability" ~ 0.5,
+      condition=="low nameability" ~ -0.5,
+      TRUE ~ NA
+    )
+  )
+
+an_data <- an_data %>%
+  rowwise() %>%
+  mutate(pair = paste(sort(c(target, foil)), collapse = " - "),colorPair=paste(sort(c(target, foil)), collapse = "")) %>%
+  ungroup() %>%
+  left_join(an_demographics)%>%
+  mutate(
+    condition_c=case_when(
+      condition=="high nameability" ~ 0.5,
+      condition=="low nameability" ~ -0.5,
+      TRUE ~ NA
+    )
+  )
+```
+
+## Exclude participants
+
+```{r}
+kn_data <- kn_data %>%
+  filter(exclude=="n")
+#excluding the following participants
+#exclude_participants <- c("CKN_101","CKN_112","CKN_114a","CKN_121","CKN_126","CKN_120")
+```
+
+# Demographics {.tabset}
+
+## Children {.tabset}
+
+### Age, Gender
+
+```{r, message=F, warning=F}
+####summarize by subject####
+kid_subj <- kn_data %>%
+  select(subject_id,age_months,gender,race, ethnicity,language_history,household_income_category,parental_education_category,family_history_color_blindness,color_blindness_dx) %>%
+  distinct()
+
+####summarize demographics####
+kid_demographics <-  kid_subj %>%
+  ungroup() %>%
+  summarize(N=n(), 
+            mean_age = round(mean(age_months,na.rm=TRUE),1), 
+            sd_age = round(sd(age_months,na.rm=TRUE),1), 
+            min_age = min(age_months,na.rm=TRUE), 
+            max_age = max(age_months,na.rm=TRUE),
+            count_female = sum(gender=='female',na.rm=TRUE),
+            english_l1=paste(100*sum(str_detect(language_history,"1"))/sum(language_history!=""),"%",sep=""),
+            bilingual=sum(language_history!="1"&language_history!="")
+            )
+kable(kid_demographics)
+```
+
+### Race
+
+```{r, message=F, warning=F}
+kid_subj %>%
+  group_by(race) %>%
+  summarize(count=n(),
+            percent=count/nrow(kid_subj)) %>%
+  kable()
+```
+
+### Ethnicity
+
+```{r, message=F, warning=F}
+kid_subj %>%
+  group_by(ethnicity) %>%
+  summarize(count=n(),
+            percent=count/nrow(kid_subj)) %>%
+  kable()
+```
+
+### Household Income
+
+```{r, message=F, warning=F}
+kid_subj %>%
+  mutate(household_income_category = factor(household_income_category,levels=c("$100,000 or more","$50,000 to 99,999","$25,000 to $49,999","less than $24,999","Prefer not to disclose"))) %>%
+  group_by(household_income_category) %>%
+  summarize(count=n(),
+            percent=count/nrow(kid_subj)) %>%
+  kable()
+```
+
+### Parental Education
+
+```{r, message=F, warning=F}
+kid_subj %>%
+  mutate(parental_education_category = factor(parental_education_category,levels=c("Some high school","High school graduate","Some college","Trade/technical/vocational training","College graduate","Postgraduate","Prefer not to disclose"))) %>%
+  group_by(parental_education_category) %>%
+  summarize(count=n(),
+            percent=count/nrow(kid_subj)) %>%
+  kable()
+```
+
+## Adults {.tabset}
+
+### Age, Gender
+
+```{r, message=F, warning=F}
+####summarize by subject####
+adult_subj <-  an_data %>%
+  select(subject_id,age,gender,race, ethnicity,language_history,family_history_color_blindness,color_blindness_dx) %>%
+  distinct()
+####summarize demographics####
+adult_demographics <-  adult_subj %>%
+  ungroup() %>%
+  summarize(N=n(), 
+            mean_age = round(mean(age,na.rm=TRUE),1), 
+            sd_age = round(sd(age,na.rm=TRUE),1), 
+            min_age = min(age,na.rm=TRUE), 
+            max_age = max(age,na.rm=TRUE),
+            count_female = sum(gender=='female'),
+            english_l1=paste(100*sum(str_detect(language_history,"1"))/sum(language_history!=""),"%",sep=""),
+            bilingual=sum(language_history!="1"&language_history!=""))
+kable(adult_demographics)
+```
+
+### Race
+
+```{r, message=F, warning=F}
+adult_subj %>%
+  group_by(race) %>%
+  summarize(count=n(),
+            percent=count/nrow(kid_subj)) %>%
+  kable()
+```
+
+### Ethnicity
+
+```{r, message=F, warning=F}
+adult_subj %>%
+  group_by(ethnicity) %>%
+  summarize(count=n(),
+            percent=count/nrow(kid_subj)) %>%
+  kable()
+```
+
+# Single-color analysis {.tabset}
+
+These analyses are similar in structure to the analyses of color norming data in Zettersten & Lupyan (2020). We compute average reaction times (for correct trials only) and accuracies for each individual color, averaging across participants and foil pairings.
+
+## Reaction Times
+
+### Children {.tabset}
+
+```{r}
+# participant reaction times for each color
+kid_participant_color_rt <- kn_data %>%
+  filter(correct==1&condition!="practice"&rt<=5000&rt>=200) %>%
+  group_by(subject_id,condition,target) %>% 
+  summarize(
+    N=sum(!is.na(rt)),
+    avg_rt=mean(rt,na.rm=T)
+  )
+
+#average reaction times for each color
+kid_color_rt <- kid_participant_color_rt %>%
+  ungroup() %>%
+  select(-N) %>%
+  summarySEwithin("avg_rt",withinvars=c("condition","target"),idvar="subject_id",na.rm=TRUE)
+
+#join with color property data (from Zettersten & Lupyan, 2020)
+kid_color_rt <- kid_color_rt %>%
+  left_join(
+    color_properties_zl,by=join_by(target==colorName)
+  )
+```
+
+#### Plot
+
+```{r}
+kid_color_rt <- kid_color_rt %>%
+  mutate(
+    target_label = case_when(
+      target=="red" ~ "(220, 20, 0) - red",
+    target=="brown"~"(120, 80, 40) - brown",
+    target=="blue"~"(30, 90, 210) - blue",
+    target=="yellow"~"(250, 240, 0) - yellow",
+    target=="purple"~"(130, 30, 180) - purple",
+    target=="orange"~"(250, 120, 30) - orange",
+    target=="pink"~"(200, 170, 170) - mauve",
+    target=="mustard"~"(170, 160, 40) - chartreuse",
+    target=="turquoise"~"(150, 200, 180) - turquoise",
+    target=="neonyellow"~"(220, 240, 150) - honeydew",
+    target=="darkgreenblue"~"(70, 100, 90) - teal",
+    target=="lightred"~"(200, 100, 70) - sienna")
+  )
+ggplot(kid_color_rt, aes(reorder(target_label,-avg_rt,mean),avg_rt, color=condition))+
+  geom_bar(aes(fill=condition,alpha=condition),stat="identity",size=1.5, position=position_dodge(.95))+
+  geom_errorbar(aes(ymin=avg_rt-ci,ymax=avg_rt+ci), width=0.3,size=1.2, position=position_dodge(.95))+
+  #coord_cartesian(ylim=c(500,700))+
+  #ggtitle("Child Discriminability")+
+  ylab("Reaction Time (in ms)")+
+  xlab("Color")+
+  scale_color_brewer(palette="Set1",name="Nameability")+
+  scale_fill_brewer(palette="Set1",name="Nameability")+
+  scale_alpha_manual(name="Nameability",values=c(0,0.5))+
+  theme_cowplot()+
+  theme(legend.position=c(0.05,0.2),legend.background=element_rect(fill="white")) + 
+  theme(axis.text.x  = element_text(angle=90, vjust=0.5),plot.title = element_text(hjust = 0.5))+
+  theme(text=element_text(size=18))+
+  theme(strip.text.x = element_text(size=16), plot.background = element_rect(fill="white",color="white"))
+ggsave(here::here("figures","kid_color_rt.png"),width=9, height=6,dpi=600)
+```
+
+#### Overall Results
+
+Evaluating whether high nameability colors and low nameability colors differ in their average discriminability (RT-based)
+
+```{r}
+#overall average
+kid_color_rt %>%
+  group_by(condition) %>%
+  summarize(
+    N = n(),
+    mean_rt = mean(avg_rt),
+    sd = sd(avg_rt),
+    ci = qt(0.975, N-1)*sd/sqrt(N),
+    lower_ci = mean_rt-ci,
+    upper_ci = mean_rt+ci
+  ) %>%
+  kable()
+
+# t-test
+t.test(avg_rt ~ condition, data = kid_color_rt, paired = FALSE)
+
+#Bayes Factor
+#evidence for the null hypothesis
+1/ttestBF(kid_color_rt$avg_rt[kid_color_rt$condition=="high nameability"],kid_color_rt$avg_rt[kid_color_rt$condition=="low nameability"],paired=TRUE)
+```
+
+### Adults {.tabset}
+
+```{r}
+# participant reaction times for each color
+adult_participant_color_rt <- an_data %>%
+  filter(correct==1&condition!="practice"&rt<=2000&rt>=200) %>%
+  group_by(subject_id,condition,target) %>% 
+  summarize(
+    N=sum(!is.na(rt)),
+    avg_rt=mean(rt,na.rm=T)
+  )
+
+#average reaction times for each color
+adult_color_rt <- adult_participant_color_rt %>%
+  ungroup() %>%
+  select(-N) %>%
+  summarySEwithin("avg_rt",withinvars=c("condition","target"),idvar="subject_id",na.rm=TRUE)
+
+#join with color property data (from Zettersten & Lupyan, 2020)
+adult_color_rt <- adult_color_rt %>%
+  left_join(
+    color_properties_zl,by=join_by(target==colorName)
+  )
+```
+
+#### Plot
+
+```{r}
+adult_color_rt <- adult_color_rt %>%
+  mutate(
+    target_label = case_when(
+      target=="red" ~ "(220, 20, 0) - red",
+    target=="brown"~"(120, 80, 40) - brown",
+    target=="blue"~"(30, 90, 210) - blue",
+    target=="yellow"~"(250, 240, 0) - yellow",
+    target=="purple"~"(130, 30, 180) - purple",
+    target=="orange"~"(250, 120, 30) - orange",
+    target=="pink"~"(200, 170, 170) - mauve",
+    target=="mustard"~"(170, 160, 40) - chartreuse",
+    target=="turquoise"~"(150, 200, 180) - turquoise",
+    target=="neonyellow"~"(220, 240, 150) - honeydew",
+    target=="darkgreenblue"~"(70, 100, 90) - teal",
+    target=="lightred"~"(200, 100, 70) - sienna")
+  )
+ggplot(adult_color_rt, aes(reorder(target_label,-avg_rt,mean),avg_rt, color=condition))+
+  geom_bar(aes(fill=condition,alpha=condition),stat="identity",size=1.5, position=position_dodge(.95))+
+  geom_errorbar(aes(ymin=avg_rt-ci,ymax=avg_rt+ci), width=0.3,size=1.2, position=position_dodge(.95))+
+  #coord_cartesian(ylim=c(500,700))+
+  #ggtitle("Adult Discriminability")+
+  ylab("Reaction Time (in ms)")+
+  xlab("Color")+
+  scale_color_brewer(palette="Set1",name="Nameability")+
+  scale_fill_brewer(palette="Set1",name="Nameability")+
+  scale_alpha_manual(name="Nameability",values=c(0,0.5))+
+  theme_cowplot()+
+  theme(legend.position=c(0.05,0.2),legend.background=element_rect(fill="white")) + 
+  theme(axis.text.x  = element_text(angle=90, vjust=0.5),plot.title = element_text(hjust = 0.5))+
+  theme(text=element_text(size=18))+
+  theme(strip.text.x = element_text(size=16), plot.background = element_rect(fill="white",color="white"))
+ggsave(here::here("figures","adult_color_rt.png"),width=9, height=6,dpi=600)
+```
+
+
+#### Overall Results
+
+Evaluating whether high nameability colors and low nameability colors differ in their average discriminability (RT-based)
+
+```{r}
+#overall average
+adult_color_rt %>%
+  group_by(condition) %>%
+  summarize(
+    N = n(),
+    mean_rt = mean(avg_rt),
+    sd = sd(avg_rt),
+    ci = qt(0.975, N-1)*sd/sqrt(N),
+    lower_ci = mean_rt-ci,
+    upper_ci = mean_rt+ci
+  ) %>%
+  kable()
+
+# t-test
+t.test(avg_rt ~ condition, data = adult_color_rt, paired = FALSE)
+
+#Bayes Factor
+#evidence for the null hypothesis
+1/ttestBF(adult_color_rt$avg_rt[adult_color_rt$condition=="high nameability"],adult_color_rt$avg_rt[adult_color_rt$condition=="low nameability"],paired=TRUE)
+```
+
+### Correlations {.tabset}
+
+```{r}
+adult_color_rt_to_join <- adult_color_rt %>%
+  select(target,avg_rt) %>%
+  rename(adult_avg_rt=avg_rt)
+kid_color_rt <- kid_color_rt %>%
+  left_join(adult_color_rt_to_join)
+
+ggplot(kid_color_rt,aes(avg_rt,adult_avg_rt))+
+  geom_point(aes(color=condition))+
+  geom_smooth(method="lm")+
+  xlab("Average Color Reaction Time (ms) - Children")+
+  ylab("Average Color Reaction Time (ms) - Adults")+
+  theme(legend.position=c(0.1,0.2))
+```
+
+```{r}
+#Correlations
+cor.test(
+  kid_color_rt$avg_rt,
+  kid_color_rt$adult_avg_rt,
+)
+```
+
+## Accuracy {.tabset}
+
+### Children {.tabset}
+
+```{r}
+# participant accuracy for each color
+kid_participant_color_acc <- kn_data %>%
+  filter(condition!="practice") %>%
+  group_by(subject_id,condition,target) %>% 
+  summarize(
+    N=sum(!is.na(correct)),
+    avg_accuracy=mean(correct,na.rm=T)
+  )
+
+#average accuracy for each color
+kid_color_acc <- kid_participant_color_acc %>%
+  ungroup() %>%
+  select(-N) %>%
+  summarySEwithin("avg_accuracy",withinvars=c("condition","target"),idvar="subject_id",na.rm=TRUE)
+```
+
+Evaluating whether high nameability colors and low nameability colors differ in their average accuracy
+
+```{r}
+#overall average
+kid_color_acc %>%
+  group_by(condition) %>%
+  summarize(
+    N = n(),
+    mean_accuracy = mean(avg_accuracy),
+    sd = sd(avg_accuracy),
+    ci = qt(0.975, N-1)*sd/sqrt(N),
+    lower_ci = mean_accuracy-ci,
+    upper_ci = mean_accuracy+ci
+  ) %>%
+  kable()
+
+# t-test
+t.test(avg_accuracy ~ condition, data = kid_color_acc, paired = FALSE)
+
+#Bayes Factor
+#evidence for the null hypothesis
+1/ttestBF(kid_color_acc$avg_accuracy[kid_color_acc$condition=="high nameability"],kid_color_acc$avg_accuracy[kid_color_acc$condition=="low nameability"],paired=TRUE)
+```
+
+### Adults {.tabset}
+
+```{r}
+# participant accuracy for each color
+adult_participant_color_acc <- an_data %>%
+  filter(condition!="practice") %>%
+  group_by(subject_id,condition,target) %>% 
+  summarize(
+    N=sum(!is.na(correct)),
+    avg_accuracy=mean(correct,na.rm=T)
+  )
+
+#average accuracy for each color
+adult_color_acc <- adult_participant_color_acc %>%
+  ungroup() %>%
+  select(-N) %>%
+  summarySEwithin("avg_accuracy",withinvars=c("condition","target"),idvar="subject_id",na.rm=TRUE)
+```
+
+Evaluating whether high nameability colors and low nameability colors differ in their average accuracy
+
+```{r}
+#overall average
+adult_color_acc %>%
+  group_by(condition) %>%
+  summarize(
+    N = n(),
+    mean_accuracy = mean(avg_accuracy),
+    sd = sd(avg_accuracy),
+    ci = qt(0.975, N-1)*sd/sqrt(N),
+    lower_ci = mean_accuracy-ci,
+    upper_ci = mean_accuracy+ci
+  ) %>%
+  kable()
+
+# t-test
+t.test(avg_accuracy ~ condition, data = adult_color_acc, paired = FALSE)
+
+#Bayes Factor
+#evidence for the null hypothesis
+1/ttestBF(adult_color_acc$avg_accuracy[adult_color_acc$condition=="high nameability"],adult_color_acc$avg_accuracy[adult_color_acc$condition=="low nameability"],paired=TRUE)
+```
+
+# Color Pair Analysis {.tabset}
+
+## Children {.tabset}
+
+```{r}
+# participant reaction times for each color pair
+kid_participant_color_pair_rt <- kn_data %>%
+  filter(correct==1&condition!="practice"&rt<=5000&rt>=200) %>%
+  group_by(subject_id,condition,pair,colorPair) %>% 
+  summarize(
+    N=sum(!is.na(rt)),
+    avg_rt=mean(rt,na.rm=T)
+  )
+
+color_pairing <- kid_participant_color_pair_rt %>%
+  ungroup() %>%
+  select(pair,colorPair) %>%
+  distinct()
+
+#average reaction times for each color
+kid_color_pair_rt <- kid_participant_color_pair_rt %>%
+  ungroup() %>%
+  select(-N) %>%
+  summarySEwithin("avg_rt",withinvars=c("condition","pair"),idvar="subject_id",na.rm=TRUE) %>%
+  left_join(color_pairing)
+
+#join with color property data (from Zettersten & Lupyan, 2020)
+kid_color_pair_rt <- kid_color_pair_rt %>%
+  left_join(
+    select(colorpair_discrim_rt_zl,colorPair,zl_average_rt,dE2000)
+  ) %>%
+  mutate(group="children")
+```
+
+### Plot
+
+```{r}
+ggplot(kid_color_pair_rt, aes(reorder(pair,-avg_rt,mean),avg_rt, color=condition))+
+  geom_bar(aes(fill=condition,alpha=condition),stat="identity",size=1.5, position=position_dodge(.95))+
+  geom_errorbar(aes(ymin=avg_rt-ci,ymax=avg_rt+ci), width=0.3,size=1.2, position=position_dodge(.95))+
+  #coord_cartesian(ylim=c(500,700))+
+  #ggtitle("Child Discriminability")+
+  ylab("Reaction Time (in ms)")+
+  xlab("Color Pair")+
+  scale_color_brewer(palette="Set1",name="Nameability")+
+  scale_fill_brewer(palette="Set1",name="Nameability")+
+  scale_alpha_manual(name="Nameability",values=c(0,0.5))+
+  theme(legend.position=c(0.05,0.2),legend.background=element_rect(fill="white")) + 
+  theme(axis.text.x  = element_text(angle=90, vjust=0.5),plot.title = element_text(hjust = 0.5))
+ggplot(kid_color_pair_rt, aes(condition,avg_rt, color=condition))+
+  geom_boxplot()+
+  geom_jitter(width=0.1)+
+  xlab("Condition")+
+  theme(legend.position="none")+
+  ylab("Average Reaction Time (in ms)")+
+  scale_color_brewer(palette="Set1",name="Nameability")
+```
+
+### Overall Results
+
+Evaluating whether high nameability colors and low nameability colors differ in their average discriminability (RT-based)
+
+```{r}
+#overall average
+kid_color_pair_rt %>%
+  group_by(condition) %>%
+  summarize(
+    N = n(),
+    mean_rt = mean(avg_rt),
+    sd = sd(avg_rt),
+    ci = qt(0.975, N-1)*sd/sqrt(N),
+    lower_ci = mean_rt-ci,
+    upper_ci = mean_rt+ci
+  ) %>%
+  kable()
+
+# t-test
+t.test(avg_rt ~ condition, data = kid_color_pair_rt, paired = FALSE)
+
+#Bayes Factor
+#evidence for the null hypothesis
+1/ttestBF(kid_color_pair_rt$avg_rt[kid_color_pair_rt$condition=="high nameability"],kid_color_pair_rt$avg_rt[kid_color_pair_rt$condition=="low nameability"],paired=TRUE)
+```
+
+## Adults {.tabset}
+
+```{r}
+# participant reaction times for each color pair
+adult_participant_color_pair_rt <- an_data %>%
+  filter(correct==1&condition!="practice"&rt<=2000&rt>=200) %>%
+  group_by(subject_id,condition,pair,colorPair) %>% 
+  summarize(
+    N=sum(!is.na(rt)),
+    avg_rt=mean(rt,na.rm=T)
+  )
+
+color_pairing <- adult_participant_color_pair_rt %>%
+  ungroup() %>%
+  select(pair,colorPair) %>%
+  distinct()
+
+#average reaction times for each color
+adult_color_pair_rt <- adult_participant_color_pair_rt %>%
+  ungroup() %>%
+  select(-N) %>%
+  summarySEwithin("avg_rt",withinvars=c("condition","pair"),idvar="subject_id",na.rm=TRUE) %>%
+  left_join(color_pairing)
+
+#join with color property data (from Zettersten & Lupyan, 2020)
+adult_color_pair_rt <- adult_color_pair_rt %>%
+  left_join(
+    select(colorpair_discrim_rt_zl,colorPair,zl_average_rt,dE2000)
+  )%>%
+  mutate(group="adults")
+```
+
+### Plot
+
+```{r}
+ggplot(adult_color_pair_rt, aes(reorder(pair,-avg_rt,mean),avg_rt, color=condition))+
+  geom_bar(aes(fill=condition,alpha=condition),stat="identity",size=1.5, position=position_dodge(.95))+
+  geom_errorbar(aes(ymin=avg_rt-ci,ymax=avg_rt+ci), width=0.3,size=1.2, position=position_dodge(.95))+
+  #coord_cartesian(ylim=c(500,700))+
+  #ggtitle("Adult Discriminability")+
+  ylab("Reaction Time (in ms)")+
+  xlab("Color Pair")+
+  scale_color_brewer(palette="Set1",name="Nameability")+
+  scale_fill_brewer(palette="Set1",name="Nameability")+
+  scale_alpha_manual(name="Nameability",values=c(0,0.5))+
+  theme(legend.position=c(0.05,0.2),legend.background=element_rect(fill="white")) + 
+  theme(axis.text.x  = element_text(angle=90, vjust=0.5),plot.title = element_text(hjust = 0.5))
+ggplot(adult_color_pair_rt, aes(condition,avg_rt, color=condition))+
+  geom_boxplot()+
+  geom_jitter(width=0.1)+
+  xlab("Condition")+
+  theme(legend.position="none")+
+  ylab("Average Reaction Time (in ms)")+
+  scale_color_brewer(palette="Set1",name="Nameability")
+```
+
+### Overall Results
+
+Evaluating whether high nameability colors and low nameability colors differ in their average discriminability (RT-based)
+
+```{r}
+#overall average
+adult_color_pair_rt %>%
+  group_by(condition) %>%
+  summarize(
+    N = n(),
+    mean_rt = mean(avg_rt),
+    sd = sd(avg_rt),
+    ci = qt(0.975, N-1)*sd/sqrt(N),
+    lower_ci = mean_rt-ci,
+    upper_ci = mean_rt+ci
+  ) %>%
+  kable()
+
+# t-test
+t.test(avg_rt ~ condition, data = adult_color_pair_rt, paired = FALSE)
+
+#Bayes Factor
+#evidence for the null hypothesis
+1/ttestBF(adult_color_pair_rt$avg_rt[adult_color_pair_rt$condition=="high nameability"],adult_color_pair_rt$avg_rt[adult_color_pair_rt$condition=="low nameability"],paired=TRUE)
+```
+
+## Correlations {.tabset}
+
+### Kids vs. Adults
+```{r}
+color_pair_rt <- kid_color_pair_rt %>%
+  bind_rows(adult_color_pair_rt)
+
+color_pair_rt_wide <- color_pair_rt %>%
+  select(-N,-se,-sd,-ci,-avg_rt_norm,-zl_average_rt,-dE2000,-colorPair) %>%
+  pivot_wider(
+    names_from="group",
+    values_from="avg_rt"
+  ) 
+
+ggplot(color_pair_rt_wide, aes(children, adults))+
+  geom_point()+
+  geom_smooth(method="lm")
+
+cor.test(
+  color_pair_rt_wide$children,
+  color_pair_rt_wide$adults,
+)
+```
+
+# Main Linear Mixed-effects Model {.tabset}
+
+## Children {.tabset}
+
+### Reaction Time
+
+We fit a trial-by-trial linear mixed effects model prediction reaction time from condition, including a by-participant random intercept and random slope for condition and a by-color-pair random intercept.
+
+```{r}
+kn_data <- kn_data %>%
+  mutate(condition_c=ifelse(condition=="high nameability",0.5,-0.5))
+m <- lmer(rt ~ condition_c+(1+condition_c|subject_id)+(1|pair),data=filter(kn_data,rt<=5000&correct==1&condition!="practice"))
+summary(m)
+```
+
+Reaction times decline with age, but there is no interaction with condition
+
+``` {r}
+m <- lmer(rt ~ condition_c*age_months+(1+condition_c|subject_id)+(1|pair),data=filter(kn_data,rt<=5000&correct==1&condition!="practice"))
+summary(m)
+```
+
+### Accuracy
+
+We fit a trial-by-trial logistic mixed effects model prediction reaction time from condition, including a by-participant random intercept and random slope for condition and a by-color-pair random intercept.
+
+```{r}
+m <- glmer(correct ~ condition_c+(1+condition_c|subject_id)+(1|pair),data=filter(kn_data,rt<=5000&condition!="practice"),family="binomial")
+summary(m)
+```
+
+No interaction between condition and age
+
+```{r}
+m <- glmer(correct ~ condition_c*age_months+(1+condition_c|subject_id)+(1|pair),data=filter(kn_data,rt<=5000&condition!="practice"),family="binomial",glmerControl(optimizer="bobyqa"))
+summary(m)
+```
+
+## Adults {.tabset}
+
+### Reaction Time 
+
+We fit a trial-by-trial linear mixed effects model prediction reaction time from condition, including a by-participant random intercept and random slope for condition and a by-color-pair random intercept.
+
+```{r}
+an_data <- an_data %>%
+  mutate(condition_c=ifelse(condition=="high nameability",0.5,-0.5))
+m <- lmer(rt ~ condition_c+(1+condition_c|subject_id)+(1|pair),data=filter(an_data,rt<=2000&correct==1&condition!="practice"))
+summary(m)
+```
+
+### Accuracy
+
+We fit a trial-by-trial logistic mixed effects model prediction reaction time from condition, including a by-participant random intercept and random slope for condition and a by-color-pair random intercept.
+
+```{r}
+m <- glmer(correct ~ condition_c+(1+condition_c|subject_id)+(1|pair),data=filter(kn_data,rt<=2000&condition!="practice"),family="binomial",glmerControl(optimizer="bobyqa"))
+summary(m)
+```
+
+## Child - Adult Interaction
+
+We also found no significant interaction between age group and condition in a linear mixed-effects model.
+
+```{r}
+overall_data <- kn_data %>%
+  select(-home_income,-parental_education,-family_history_color_blindness,-color_blindness_dx) %>%
+  bind_rows(select(an_data,-home_income,-parental_education,-family_history_color_blindness,-color_blindness_dx)) %>%
+  mutate(age_group_c=ifelse(age_group=="children",-0.5,0.5))
+m <- lmer(rt~ condition_c*age_group_c+(1+condition_c|subject_id)+(1|pair),data=filter(overall_data,rt<=5000&correct==1&condition!="practice"))
+summary(m)
+
+```
+
+# Relation with Zettersten & Lupyan (2020) norming data
+
+## ZL discriminability - Single Color {.tabset}
+
+### Children & ZL discriminability {.tabset}
+
+#### Correlation Plot
+
+```{r}
+p1 <- ggplot(kid_color_rt,aes(avg_rt,rt_different))+
+  geom_point(aes(color=condition))+
+  geom_smooth(method="lm")+
+  xlab("Average Color Reaction Time (ms) - Children")+
+  ylab("Average Color Reaction Time (ms) - Different Trials\nZettersten & Lupyan (2020)")+
+  theme(legend.position=c(0.1,0.2))
+
+p2 <- ggplot(kid_color_rt,aes(avg_rt,rt_same))+
+  geom_point(aes(color=condition))+
+  geom_smooth(method="lm")+
+  xlab("Average Color Reaction Time (ms) - Children")+
+  ylab("Average Color Reaction Time (ms) - Same Trials\nZettersten & Lupyan (2020)")+
+  theme(legend.position=c(0.1,0.2))
+
+plot_grid(p1,p2)
+```
+
+#### Correlation - Different Trials
+```{r}
+#Correlations
+cor.test(
+  kid_color_rt$avg_rt,
+  kid_color_rt$rt_different,
+)
+```
+
+#### Correlation - Same Trials
+```{r}
+cor.test(
+  kid_color_rt$avg_rt,
+  kid_color_rt$rt_same,
+)
+```
+
+### Adults & ZL discriminability {.tabset}
+
+#### Correlation Plot
+
+```{r}
+p1 <- ggplot(adult_color_rt,aes(avg_rt,rt_different))+
+  geom_point(aes(color=condition))+
+  geom_smooth(method="lm")+
+  xlab("Average Color Reaction Time (ms) - Adults")+
+  ylab("Average Color Reaction Time (ms) - Different Trials\nZettersten & Lupyan (2020)")+
+  theme(legend.position=c(0.1,0.2))
+
+p2 <- ggplot(adult_color_rt,aes(avg_rt,rt_same))+
+  geom_point(aes(color=condition))+
+  geom_smooth(method="lm")+
+  xlab("Average Color Reaction Time (ms) - Adults")+
+  ylab("Average Color Reaction Time (ms) - Same Trials\nZettersten & Lupyan (2020)")+
+  theme(legend.position=c(0.1,0.2))
+
+plot_grid(p1,p2)
+```
+
+#### Correlation - Different Trials
+```{r}
+#Correlations
+cor.test(
+  adult_color_rt$avg_rt,
+  adult_color_rt$rt_different,
+)
+```
+
+#### Correlation - Same Trials
+```{r}
+cor.test(
+  adult_color_rt$avg_rt,
+  adult_color_rt$rt_same,
+)
+```
+
+## ZL discriminability - Color Pairs {.tabset}
+
+### Children & ZL discriminability {.tabset}
+
+```{r}
+ggplot(kid_color_pair_rt,aes(avg_rt,zl_average_rt))+
+  geom_point(aes(color=condition))+
+  geom_smooth(method="lm")+
+  xlab("Average Color Reaction Time (ms) - Children")+
+  ylab("Average Color Reaction Time (ms) - Color Pairs\nZettersten & Lupyan (2020)")+
+  theme(legend.position=c(0.1,0.2))
+```
+
+```{r}
+#Correlations
+cor.test(
+  kid_color_pair_rt$avg_rt,
+  kid_color_pair_rt$zl_average_rt,
+)
+```
+
+### Adults & ZL discriminability {.tabset}
+
+```{r}
+ggplot(adult_color_pair_rt,aes(avg_rt,zl_average_rt))+
+  geom_point(aes(color=condition))+
+  geom_smooth(method="lm")+
+  xlab("Average Color Reaction Time (ms) - Children")+
+  ylab("Average Color Reaction Time (ms) - Color Pairs\nZettersten & Lupyan (2020)")+
+  theme(legend.position=c(0.1,0.8))+
+  theme(text=element_text(size=18))+
+  theme(strip.text.x = element_text(size=16), plot.background = element_rect(fill="white",color="white"))
+ggsave(here::here("figures","adult_zl2020.png"),width=9, height=6,dpi=600)
+```
+
+```{r}
+#Correlations
+cor.test(
+  adult_color_pair_rt$avg_rt,
+  adult_color_pair_rt$zl_average_rt,
+)
+```
+
+## deltaE 2000 {.tabset}
+
+### Children & deltaE2000 {.tabset}
+
+```{r}
+ggplot(kid_color_pair_rt,aes(avg_rt,dE2000))+
+  geom_point(aes(color=condition))+
+  geom_smooth(method="lm")+
+  xlab("Average Color Reaction Time (ms) - Children")+
+  ylab("deltaE2000")+
+  theme(legend.position=c(0.1,0.2))+
+  theme(text=element_text(size=18))+
+  theme(strip.text.x = element_text(size=16), plot.background = element_rect(fill="white",color="white"))
+ggsave(here::here("figures","kid_dE2000.png"),width=9, height=6,dpi=600)
+```
+
+Children's reaction times correlated with deltaE2000 values.
+
+```{r}
+#Correlations
+cor.test(
+  kid_color_pair_rt$avg_rt,
+  kid_color_pair_rt$dE2000,
+)
+```
+
+### Adults & deltaE2000 {.tabset}
+
+```{r}
+ggplot(adult_color_pair_rt,aes(avg_rt,dE2000))+
+  geom_point(aes(color=condition))+
+  geom_smooth(method="lm")+
+  xlab("Average Color Reaction Time (ms) - Adults")+
+  ylab("deltaE2000")+
+  theme(legend.position=c(0.1,0.2))+
+  theme(text=element_text(size=18))+
+  theme(strip.text.x = element_text(size=16), plot.background = element_rect(fill="white",color="white"))
+ggsave(here::here("figures","adult_dE2000.png"),width=9, height=6,dpi=600)
+```
+
+Adults' reaction times correlated with deltaE2000 values.
+
+```{r}
+#Correlations
+cor.test(
+  adult_color_pair_rt$avg_rt,
+  adult_color_pair_rt$dE2000,
+)
+```
+
+### ZL discriminability (adults) & deltaE2000 {.tabset}
+
+```{r}
+ggplot(adult_color_pair_rt,aes(zl_average_rt,dE2000))+
+  geom_point(aes(color=condition))+
+  geom_smooth(method="lm")+
+  xlab("Average Color Reaction Time (ms) - Adults\n(Zettersten & Lupyan (2020)")+
+  ylab("deltaE2000")+
+  theme(legend.position=c(0.1,0.2))
+```
+
+Adults' reaction times correlated with deltaE2000 values.
+
+```{r}
+#Correlations
+cor.test(
+  adult_color_pair_rt$zl_average_rt,
+  adult_color_pair_rt$dE2000,
+)
+```
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
