@@ -1,9 +1,9 @@
 "Estimate","SE","z","p"
-"Intercept",3.58,0.225,15.9,8.16e-57
-"Condition",1.68,0.363,4.61,4e-06
-"Block Number",1.26,0.203,6.23,4.54e-10
-"Round",1.26,0.319,3.94,8.22e-05
+"Intercept",3.58,0.225,15.9,8.38e-57
+"Condition",1.68,0.363,4.61,4.01e-06
+"Block Number",1.26,0.203,6.23,4.57e-10
+"Round",1.26,0.319,3.94,8.24e-05
 "Condition * Block Number",0.556,0.267,2.08,0.0378
-"Condition * Round",0.368,0.399,0.922,0.356
+"Condition * Round",0.368,0.399,0.922,0.357
 "Block Number * Round",-0.229,0.356,-0.642,0.521
-"Condition * Block Number * Round",-0.176,0.447,-0.395,0.693
+"Condition * Block Number * Round",-0.176,0.447,-0.394,0.693

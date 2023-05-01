@@ -1,17 +1,17 @@
 "Estimate","SE","z","p"
-"Intercept",2.11,0.0915,23.1,5.64e-118
-"Condition",0.927,0.172,5.38,7.47e-08
-"Block Number",0.548,0.0698,7.86,3.89e-15
-"Round",0.788,0.123,6.42,1.35e-10
-"Age Group",2.32,0.176,13.2,1.15e-39
-"Condition * Block Number",0.374,0.118,3.18,0.00149
-"Condition * Round",0.18,0.215,0.837,0.403
-"Block Number * Round",-0.356,0.134,-2.65,0.00795
-"Condition * Age Group",1.28,0.344,3.73,0.00019
-"Block Number * Age Group",0.785,0.123,6.37,1.9e-10
-"Round * Age Group",0.676,0.223,3.04,0.00237
-"Condition * Block Number * Round",-0.167,0.227,-0.736,0.462
-"Condition * Block Number * Age Group",0.279,0.236,1.19,0.236
+"Intercept",2.11,0.0915,23.1,4.84e-118
+"Condition",0.927,0.172,5.38,7.42e-08
+"Block Number",0.548,0.0698,7.86,3.83e-15
+"Round",0.788,0.123,6.43,1.31e-10
+"Age Group",2.32,0.176,13.2,1.1e-39
+"Condition * Block Number",0.374,0.118,3.18,0.00148
+"Condition * Round",0.18,0.215,0.838,0.402
+"Block Number * Round",-0.356,0.134,-2.66,0.00792
+"Condition * Age Group",1.28,0.344,3.74,0.000187
+"Block Number * Age Group",0.785,0.123,6.37,1.88e-10
+"Round * Age Group",0.676,0.222,3.04,0.00235
+"Condition * Block Number * Round",-0.167,0.227,-0.737,0.461
+"Condition * Block Number * Age Group",0.279,0.235,1.19,0.235
 "Condition * Round * Age Group",0.223,0.429,0.52,0.603
-"Block * Round * Age Group",-0.249,0.236,-1.06,0.291
-"Condition * Block Number * Round * Age Group",-0.0872,0.454,-0.192,0.848
+"Block * Round * Age Group",-0.249,0.236,-1.06,0.29
+"Condition * Block Number * Round * Age Group",-0.0871,0.453,-0.192,0.848
