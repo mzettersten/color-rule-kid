@@ -783,6 +783,10 @@ color_summarized_naming_length <- subj_color_naming %>%
     ci = qt(0.975, N-1)*sd/sqrt(N),
   ) %>%
   left_join(color_properties_zl)
+
+color_summarized_naming_length %>%
+  select(age_group,condition, color, RGB, N, avg_length, sd, ci) %>%
+  kable()
 ```
 
 ## Color Comprehension {.tabset}
@@ -980,6 +984,7 @@ subj_accuracy <- subj_accuracy %>%
     condition_low = condition_c + 0.5,
     condition_high = condition_c - 0.5
   ) %>%
+  ungroup() %>%
   mutate(color_ppvt_low_c=color_ppvt_low-mean(color_ppvt_low,na.rm=TRUE),
          percent_ppvt_c=percent_ppvt-mean(percent_ppvt,na.rm=TRUE))
 m <- lm(training_accuracy ~ condition_low * color_ppvt_low,data=filter(subj_accuracy, age_group=="kid"))

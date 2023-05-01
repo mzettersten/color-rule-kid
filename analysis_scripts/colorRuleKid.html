@@ -1574,7 +1574,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">Color Rule Kid Analysis</h1>
 <h4 class="author">Anonymized for peer review</h4>
-<h4 class="date">30 April, 2023</h4>
+<h4 class="date">01 May, 2023</h4>
 
 </div>
 
@@ -3634,7 +3634,277 @@ color_summarized_naming_length &lt;- subj_color_naming %&gt;%
     sd = sd(name_length),
     ci = qt(0.975, N-1)*sd/sqrt(N),
   ) %&gt;%
-  left_join(color_properties_zl)</code></pre>
+  left_join(color_properties_zl)
+
+color_summarized_naming_length %&gt;%
+  select(age_group,condition, color, RGB, N, avg_length, sd, ci) %&gt;%
+  kable()</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="12%" />
+<col width="12%" />
+<col width="13%" />
+<col width="19%" />
+<col width="3%" />
+<col width="13%" />
+<col width="12%" />
+<col width="12%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">age_group</th>
+<th align="left">condition</th>
+<th align="left">color</th>
+<th align="left">RGB</th>
+<th align="right">N</th>
+<th align="right">avg_length</th>
+<th align="right">sd</th>
+<th align="right">ci</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">adult</td>
+<td align="left">high</td>
+<td align="left">blue</td>
+<td align="left">[30, 90, 210]</td>
+<td align="right">90</td>
+<td align="right">4.000000</td>
+<td align="right">0.0000000</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="even">
+<td align="left">adult</td>
+<td align="left">high</td>
+<td align="left">brown</td>
+<td align="left">[120, 80, 40]</td>
+<td align="right">90</td>
+<td align="right">5.011111</td>
+<td align="right">0.1054093</td>
+<td align="right">0.0220775</td>
+</tr>
+<tr class="odd">
+<td align="left">adult</td>
+<td align="left">high</td>
+<td align="left">orange</td>
+<td align="left">[250, 120, 30]</td>
+<td align="right">90</td>
+<td align="right">6.800000</td>
+<td align="right">0.4022409</td>
+<td align="right">0.0842477</td>
+</tr>
+<tr class="even">
+<td align="left">adult</td>
+<td align="left">high</td>
+<td align="left">purple</td>
+<td align="left">[130, 30, 180]</td>
+<td align="right">90</td>
+<td align="right">6.711111</td>
+<td align="right">0.4557854</td>
+<td align="right">0.0954624</td>
+</tr>
+<tr class="odd">
+<td align="left">adult</td>
+<td align="left">high</td>
+<td align="left">red</td>
+<td align="left">[220, 20, 0]</td>
+<td align="right">90</td>
+<td align="right">3.000000</td>
+<td align="right">0.0000000</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="even">
+<td align="left">adult</td>
+<td align="left">high</td>
+<td align="left">yellow</td>
+<td align="left">[250, 240, 0]</td>
+<td align="right">90</td>
+<td align="right">6.000000</td>
+<td align="right">0.0000000</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="odd">
+<td align="left">adult</td>
+<td align="left">low</td>
+<td align="left">chartreuse</td>
+<td align="left">[170, 160, 40]</td>
+<td align="right">90</td>
+<td align="right">9.511111</td>
+<td align="right">4.1926754</td>
+<td align="right">0.8781389</td>
+</tr>
+<tr class="even">
+<td align="left">adult</td>
+<td align="left">low</td>
+<td align="left">honeydew</td>
+<td align="left">[220, 240, 150]</td>
+<td align="right">90</td>
+<td align="right">10.333333</td>
+<td align="right">3.1265446</td>
+<td align="right">0.6548421</td>
+</tr>
+<tr class="odd">
+<td align="left">adult</td>
+<td align="left">low</td>
+<td align="left">mauve</td>
+<td align="left">[200, 170, 170]</td>
+<td align="right">90</td>
+<td align="right">7.611111</td>
+<td align="right">3.0673871</td>
+<td align="right">0.6424518</td>
+</tr>
+<tr class="even">
+<td align="left">adult</td>
+<td align="left">low</td>
+<td align="left">sienna</td>
+<td align="left">[200, 100, 70]</td>
+<td align="right">90</td>
+<td align="right">8.100000</td>
+<td align="right">3.7597813</td>
+<td align="right">0.7874709</td>
+</tr>
+<tr class="odd">
+<td align="left">adult</td>
+<td align="left">low</td>
+<td align="left">teal</td>
+<td align="left">[70, 100, 90]</td>
+<td align="right">90</td>
+<td align="right">9.111111</td>
+<td align="right">2.8499732</td>
+<td align="right">0.5969153</td>
+</tr>
+<tr class="even">
+<td align="left">adult</td>
+<td align="left">low</td>
+<td align="left">turquoise</td>
+<td align="left">[150, 200, 180]</td>
+<td align="right">90</td>
+<td align="right">6.144444</td>
+<td align="right">2.9205245</td>
+<td align="right">0.6116920</td>
+</tr>
+<tr class="odd">
+<td align="left">kid</td>
+<td align="left">high</td>
+<td align="left">blue</td>
+<td align="left">[30, 90, 210]</td>
+<td align="right">97</td>
+<td align="right">4.000000</td>
+<td align="right">0.0000000</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="even">
+<td align="left">kid</td>
+<td align="left">high</td>
+<td align="left">brown</td>
+<td align="left">[120, 80, 40]</td>
+<td align="right">97</td>
+<td align="right">5.134021</td>
+<td align="right">0.3424442</td>
+<td align="right">0.0690178</td>
+</tr>
+<tr class="odd">
+<td align="left">kid</td>
+<td align="left">high</td>
+<td align="left">orange</td>
+<td align="left">[250, 120, 30]</td>
+<td align="right">97</td>
+<td align="right">6.134021</td>
+<td align="right">0.3424442</td>
+<td align="right">0.0690178</td>
+</tr>
+<tr class="even">
+<td align="left">kid</td>
+<td align="left">high</td>
+<td align="left">purple</td>
+<td align="left">[130, 30, 180]</td>
+<td align="right">97</td>
+<td align="right">6.690722</td>
+<td align="right">0.7268772</td>
+<td align="right">0.1464982</td>
+</tr>
+<tr class="odd">
+<td align="left">kid</td>
+<td align="left">high</td>
+<td align="left">red</td>
+<td align="left">[220, 20, 0]</td>
+<td align="right">97</td>
+<td align="right">3.206186</td>
+<td align="right">0.4773657</td>
+<td align="right">0.0962105</td>
+</tr>
+<tr class="even">
+<td align="left">kid</td>
+<td align="left">high</td>
+<td align="left">yellow</td>
+<td align="left">[250, 240, 0]</td>
+<td align="right">97</td>
+<td align="right">6.154639</td>
+<td align="right">1.1487331</td>
+<td align="right">0.2315210</td>
+</tr>
+<tr class="odd">
+<td align="left">kid</td>
+<td align="left">low</td>
+<td align="left">chartreuse</td>
+<td align="left">[170, 160, 40]</td>
+<td align="right">97</td>
+<td align="right">8.402062</td>
+<td align="right">4.6852157</td>
+<td align="right">0.9442800</td>
+</tr>
+<tr class="even">
+<td align="left">kid</td>
+<td align="left">low</td>
+<td align="left">honeydew</td>
+<td align="left">[220, 240, 150]</td>
+<td align="right">97</td>
+<td align="right">9.206186</td>
+<td align="right">4.0232091</td>
+<td align="right">0.8108561</td>
+</tr>
+<tr class="odd">
+<td align="left">kid</td>
+<td align="left">low</td>
+<td align="left">mauve</td>
+<td align="left">[200, 170, 170]</td>
+<td align="right">97</td>
+<td align="right">6.845361</td>
+<td align="right">3.8224670</td>
+<td align="right">0.7703977</td>
+</tr>
+<tr class="even">
+<td align="left">kid</td>
+<td align="left">low</td>
+<td align="left">sienna</td>
+<td align="left">[200, 100, 70]</td>
+<td align="right">97</td>
+<td align="right">6.948454</td>
+<td align="right">3.7538068</td>
+<td align="right">0.7565596</td>
+</tr>
+<tr class="odd">
+<td align="left">kid</td>
+<td align="left">low</td>
+<td align="left">teal</td>
+<td align="left">[70, 100, 90]</td>
+<td align="right">97</td>
+<td align="right">8.061856</td>
+<td align="right">3.7744051</td>
+<td align="right">0.7607110</td>
+</tr>
+<tr class="even">
+<td align="left">kid</td>
+<td align="left">low</td>
+<td align="left">turquoise</td>
+<td align="left">[150, 200, 180]</td>
+<td align="right">97</td>
+<td align="right">6.855670</td>
+<td align="right">3.1257989</td>
+<td align="right">0.6299879</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 <div id="color-comprehension" class="section level2 tabset">
@@ -4060,6 +4330,7 @@ subj_accuracy &lt;- subj_accuracy %&gt;%
     condition_low = condition_c + 0.5,
     condition_high = condition_c - 0.5
   ) %&gt;%
+  ungroup() %&gt;%
   mutate(color_ppvt_low_c=color_ppvt_low-mean(color_ppvt_low,na.rm=TRUE),
          percent_ppvt_c=percent_ppvt-mean(percent_ppvt,na.rm=TRUE))
 m &lt;- lm(training_accuracy ~ condition_low * color_ppvt_low,data=filter(subj_accuracy, age_group==&quot;kid&quot;))
@@ -4129,37 +4400,37 @@ summary(m)</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.26056 -0.10273 -0.01747  0.09607  0.31837 
+## -0.26448 -0.09415 -0.01617  0.08270  0.31158 
 ## 
-## Coefficients: (5 not defined because of singularities)
+## Coefficients:
 ##                                      Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)                         0.6898966  0.0139452  49.472  &lt; 2e-16 ***
-## condition_c                         0.0447122  0.0278904   1.603  0.11233    
-## color_ppvt_low_c                           NA         NA      NA       NA    
-## age_c                               0.0067146  0.0019975   3.361  0.00113 ** 
-## percent_ppvt_c                             NA         NA      NA       NA    
-## condition_c:color_ppvt_low_c               NA         NA      NA       NA    
-## condition_c:age_c                  -0.0000135  0.0039950  -0.003  0.99731    
-## color_ppvt_low_c:age_c                     NA         NA      NA       NA    
-## condition_c:color_ppvt_low_c:age_c         NA         NA      NA       NA    
+## (Intercept)                         0.6954026  0.0191072  36.395  &lt; 2e-16 ***
+## condition_c                         0.0182338  0.0333121   0.547  0.58553    
+## color_ppvt_low_c                    0.0142645  0.0131133   1.088  0.27969    
+## age_c                               0.0061894  0.0022119   2.798  0.00633 ** 
+## percent_ppvt_c                      0.0138131  0.1095594   0.126  0.89996    
+## condition_c:color_ppvt_low_c       -0.0519919  0.0261441  -1.989  0.04988 *  
+## condition_c:age_c                   0.0002341  0.0043552   0.054  0.95725    
+## color_ppvt_low_c:age_c              0.0008444  0.0016308   0.518  0.60591    
+## condition_c:color_ppvt_low_c:age_c -0.0032009  0.0032593  -0.982  0.32877    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.1356 on 92 degrees of freedom
+## Residual standard error: 0.1342 on 87 degrees of freedom
 ##   (1 observation deleted due to missingness)
-## Multiple R-squared:  0.1374, Adjusted R-squared:  0.1093 
-## F-statistic: 4.886 on 3 and 92 DF,  p-value: 0.003384</code></pre>
+## Multiple R-squared:  0.2019, Adjusted R-squared:  0.1285 
+## F-statistic: 2.751 on 8 and 87 DF,  p-value: 0.009332</code></pre>
 <pre class="r"><code>confint(m, method=&quot;Wald&quot;)</code></pre>
-<pre><code>##                                           2.5 %      97.5 %
-## (Intercept)                         0.662200207 0.717592981
-## condition_c                        -0.010680559 0.100104990
-## color_ppvt_low_c                             NA          NA
-## age_c                               0.002747381 0.010681825
-## percent_ppvt_c                               NA          NA
-## condition_c:color_ppvt_low_c                 NA          NA
-## condition_c:age_c                  -0.007947945 0.007920945
-## color_ppvt_low_c:age_c                       NA          NA
-## condition_c:color_ppvt_low_c:age_c           NA          NA</code></pre>
+<pre><code>##                                           2.5 %        97.5 %
+## (Intercept)                         0.657425037  7.333802e-01
+## condition_c                        -0.047977487  8.444517e-02
+## color_ppvt_low_c                   -0.011799644  4.032861e-02
+## age_c                               0.001793033  1.058582e-02
+## percent_ppvt_c                     -0.203947994  2.315742e-01
+## condition_c:color_ppvt_low_c       -0.103956130 -2.764225e-05
+## condition_c:age_c                  -0.008422370  8.890609e-03
+## color_ppvt_low_c:age_c             -0.002396889  4.085710e-03
+## condition_c:color_ppvt_low_c:age_c -0.009679121  3.277224e-03</code></pre>
 </div>
 <div id="plot-2" class="section level2">
 <h2>Plot</h2>
