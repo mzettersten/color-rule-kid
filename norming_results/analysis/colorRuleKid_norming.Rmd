@@ -974,8 +974,9 @@ cor.test(
 
 ```{r}
 ggplot(adult_color_pair_rt,aes(avg_rt,zl_average_rt))+
-  geom_point(aes(color=condition))+
-  geom_smooth(method="lm")+
+  geom_point(aes(color=condition,shape=condition),size=3)+
+  geom_smooth(method="lm",color="black")+
+  scale_color_brewer(palette = "Set1") +
   xlab("Average Color Reaction Time (ms) - Children")+
   ylab("Average Color Reaction Time (ms) - Color Pairs\nZettersten & Lupyan (2020)")+
   theme(legend.position=c(0.1,0.8))+
@@ -998,11 +999,12 @@ cor.test(
 
 ```{r}
 ggplot(kid_color_pair_rt,aes(avg_rt,dE2000))+
-  geom_point(aes(color=condition))+
-  geom_smooth(method="lm")+
+  geom_point(aes(color=condition,shape=condition),size=3)+
+  geom_smooth(method="lm",color="black")+
+  scale_color_brewer(palette = "Set1") +
   xlab("Average Color Reaction Time (ms) - Children")+
   ylab("deltaE2000")+
-  theme(legend.position=c(0.1,0.2))+
+  theme(legend.position=c(0.05,0.15))+
   theme(text=element_text(size=18))+
   theme(strip.text.x = element_text(size=16), plot.background = element_rect(fill="white",color="white"))
 ggsave(here::here("figures","kid_dE2000.png"),width=9, height=6,dpi=600)
@@ -1022,11 +1024,12 @@ cor.test(
 
 ```{r}
 ggplot(adult_color_pair_rt,aes(avg_rt,dE2000))+
-  geom_point(aes(color=condition))+
-  geom_smooth(method="lm")+
+  geom_point(aes(color=condition,shape=condition),size=3)+
+  geom_smooth(method="lm",color="black")+
+  scale_color_brewer(palette = "Set1") +
   xlab("Average Color Reaction Time (ms) - Adults")+
   ylab("deltaE2000")+
-  theme(legend.position=c(0.1,0.2))+
+  theme(legend.position=c(0.6,0.8))+
   theme(text=element_text(size=18))+
   theme(strip.text.x = element_text(size=16), plot.background = element_rect(fill="white",color="white"))
 ggsave(here::here("figures","adult_dE2000.png"),width=9, height=6,dpi=600)
@@ -1046,11 +1049,13 @@ cor.test(
 
 ```{r}
 ggplot(adult_color_pair_rt,aes(zl_average_rt,dE2000))+
-  geom_point(aes(color=condition))+
-  geom_smooth(method="lm")+
+  geom_point(aes(color=condition,shape=condition),size=3)+
+  geom_smooth(method="lm",color="black")+
+  scale_color_brewer(palette = "Set1") +
   xlab("Average Color Reaction Time (ms) - Adults\n(Zettersten & Lupyan (2020)")+
   ylab("deltaE2000")+
-  theme(legend.position=c(0.1,0.2))
+  theme(legend.position=c(0.7,0.8))
+  
 ```
 
 Adults' reaction times correlated with deltaE2000 values.
