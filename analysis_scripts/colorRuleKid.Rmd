@@ -1,6 +1,6 @@
 ---
 title: "Color Rule Kid Analysis"
-author: "Anonymized for peer review"
+author: "Martin Zettersten"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   html_document:
@@ -37,7 +37,7 @@ library(effectsize)
 theme_set(theme_cowplot())
 ```
 
-Analysis walkthrough for the paper “Nameability Supports Rule-based Category Learning in Children and Adults” (authors removed, 2022).
+Analysis walkthrough for the paper: Zettersten, M., Bredemann, C., Kaul, M., Vlach, H., Kirkorian, H., & Lupyan, G. (2023). Nameability supports rule-based category learning in children and adults. *Child Development*. https://doi.org/10.1111/cdev.14008
 
 # Preparing the data
 
@@ -1125,7 +1125,8 @@ chisq.test(as.matrix(select(adult_consistent_count, c(count_consistent,count_inc
 To test for differences between condition, we fit a logistic mixed-effects model predicting trial-by-trial accuracy from condition (centered) while controlling for stimulus type (centered). We included a by-subject random intercept and a by-subject random slope for stimulus type. 
 
 ```{r}
-m=glmer(is_right ~condition_c+stimulus_test_type_c+(1+stimulus_test_type_c|subject), data=filter(d, age_group=="adult" & trial_kind=="test"), family=binomial)
+m=glmer(is_right ~condition_c+stimulus_test_type_c+(1+stimulus_test_type_c|subject), data=filter(d, age_group=="adult" & trial_kind=="test"), family=binomial, 
+  glmerControl(optimizer="bobyqa"))
 summary(m)
 confint(m, method="Wald")[4:6,]
 ```
