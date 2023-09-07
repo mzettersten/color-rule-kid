@@ -1003,7 +1003,7 @@ summary(m)
 Qualitatively equivalent results were obtained when controlling for (non-color) vocabulary knowledge and participant age. 
 
 ```{r}
-m <- lm(training_accuracy ~ condition_c * color_ppvt_low_c*age_c+percent_ppvt_c,data=filter(subj_accuracy, age_group=="kid"))
+m <- lm(training_accuracy ~ condition_c * color_ppvt_low*age_c+percent_ppvt,data=filter(subj_accuracy, age_group=="kid"))
 summary(m)
 confint(m, method="Wald")
 ```

@@ -1574,7 +1574,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">Color Rule Kid Analysis</h1>
 <h4 class="author">Martin Zettersten</h4>
-<h4 class="date">06 September, 2023</h4>
+<h4 class="date">07 September, 2023</h4>
 
 </div>
 
@@ -4390,12 +4390,12 @@ summary(m)</code></pre>
 ## F-statistic: 3.559 on 3 and 93 DF,  p-value: 0.01724</code></pre>
 <p>Qualitatively equivalent results were obtained when controlling for
 (non-color) vocabulary knowledge and participant age.</p>
-<pre class="r"><code>m &lt;- lm(training_accuracy ~ condition_c * color_ppvt_low_c*age_c+percent_ppvt_c,data=filter(subj_accuracy, age_group==&quot;kid&quot;))
+<pre class="r"><code>m &lt;- lm(training_accuracy ~ condition_c * color_ppvt_low*age_c+percent_ppvt,data=filter(subj_accuracy, age_group==&quot;kid&quot;))
 summary(m)</code></pre>
 <pre><code>## 
 ## Call:
-## lm(formula = training_accuracy ~ condition_c * color_ppvt_low_c * 
-##     age_c + percent_ppvt_c, data = filter(subj_accuracy, age_group == 
+## lm(formula = training_accuracy ~ condition_c * color_ppvt_low * 
+##     age_c + percent_ppvt, data = filter(subj_accuracy, age_group == 
 ##     &quot;kid&quot;))
 ## 
 ## Residuals:
@@ -4403,16 +4403,16 @@ summary(m)</code></pre>
 ## -0.26448 -0.09415 -0.01617  0.08270  0.31158 
 ## 
 ## Coefficients:
-##                                      Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)                         0.6954026  0.0191072  36.395  &lt; 2e-16 ***
-## condition_c                         0.0182338  0.0333121   0.547  0.58553    
-## color_ppvt_low_c                    0.0142645  0.0131133   1.088  0.27969    
-## age_c                               0.0061894  0.0022119   2.798  0.00633 ** 
-## percent_ppvt_c                      0.0138131  0.1095594   0.126  0.89996    
-## condition_c:color_ppvt_low_c       -0.0519919  0.0261441  -1.989  0.04988 *  
-## condition_c:age_c                   0.0002341  0.0043552   0.054  0.95725    
-## color_ppvt_low_c:age_c              0.0008444  0.0016308   0.518  0.60591    
-## condition_c:color_ppvt_low_c:age_c -0.0032009  0.0032593  -0.982  0.32877    
+##                                    Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)                       0.6512752  0.0871508   7.473 5.75e-11 ***
+## condition_c                       0.1350071  0.0496514   2.719   0.0079 ** 
+## color_ppvt_low                    0.0142645  0.0131133   1.088   0.2797    
+## age_c                             0.0042929  0.0035527   1.208   0.2302    
+## percent_ppvt                      0.0138131  0.1095594   0.126   0.9000    
+## condition_c:color_ppvt_low       -0.0519919  0.0261441  -1.989   0.0499 *  
+## condition_c:age_c                 0.0074234  0.0069948   1.061   0.2915    
+## color_ppvt_low:age_c              0.0008444  0.0016308   0.518   0.6059    
+## condition_c:color_ppvt_low:age_c -0.0032009  0.0032593  -0.982   0.3288    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -4421,16 +4421,16 @@ summary(m)</code></pre>
 ## Multiple R-squared:  0.2019, Adjusted R-squared:  0.1285 
 ## F-statistic: 2.751 on 8 and 87 DF,  p-value: 0.009332</code></pre>
 <pre class="r"><code>confint(m, method=&quot;Wald&quot;)</code></pre>
-<pre><code>##                                           2.5 %        97.5 %
-## (Intercept)                         0.657425037  7.333802e-01
-## condition_c                        -0.047977487  8.444517e-02
-## color_ppvt_low_c                   -0.011799644  4.032861e-02
-## age_c                               0.001793033  1.058582e-02
-## percent_ppvt_c                     -0.203947994  2.315742e-01
-## condition_c:color_ppvt_low_c       -0.103956130 -2.764225e-05
-## condition_c:age_c                  -0.008422370  8.890609e-03
-## color_ppvt_low_c:age_c             -0.002396889  4.085710e-03
-## condition_c:color_ppvt_low_c:age_c -0.009679121  3.277224e-03</code></pre>
+<pre><code>##                                         2.5 %        97.5 %
+## (Intercept)                       0.478053537  8.244969e-01
+## condition_c                       0.036319490  2.336946e-01
+## color_ppvt_low                   -0.011799644  4.032861e-02
+## age_c                            -0.002768447  1.135422e-02
+## percent_ppvt                     -0.203947994  2.315742e-01
+## condition_c:color_ppvt_low       -0.103956130 -2.764225e-05
+## condition_c:age_c                -0.006479558  2.132639e-02
+## color_ppvt_low:age_c             -0.002396889  4.085710e-03
+## condition_c:color_ppvt_low:age_c -0.009679121  3.277224e-03</code></pre>
 </div>
 <div id="plot-2" class="section level2">
 <h2>Plot</h2>
