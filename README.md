@@ -2,7 +2,7 @@
 
 Materials, data, and analysis scripts for the "Color Rule Kid" experiment
 
-Zettersten, M., Bredemann, C., Kaul, M., Vlach, H., Kirkorian, H., & Lupyan, G. (under review). Nameability supports rule-based category learning in children and adults. Preprint:
+Zettersten, M., Bredemann, C., Kaul, M., Vlach, H., Kirkorian, H., & Lupyan, G. (2024). Nameability supports rule-based category learning in children and adults. Child Development, 95(2), 497-514. https://doi.org/10.1111/cdev.14008
 
 **Abstract**
 
